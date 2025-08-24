@@ -20,10 +20,11 @@ function Dashboard() {
     const adminId = e.target.elements.adminId.value;
     const password = e.target.elements.password.value;
     
-    if (adminId && password) {
+    // Check for specific admin credentials
+    if ((adminId === "bmk" || adminId === "BMK") && password === "CSE2264") {
         navigate("/AdminDashboard");
     } else {
-        alert("Please enter both Admin ID and Password");
+        alert("Invalid Admin ID or Password");
     }
   };
 
