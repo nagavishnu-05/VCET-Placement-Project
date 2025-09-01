@@ -44,6 +44,11 @@ const ManageCompanies = () => {
   };
   const [reloadTrigger, setReloadTrigger] = useState(false);
 
+  const [showStudentSelect, setShowStudentSelect] = useState(false);
+  const [selectedStudents, setSelectedStudents] = useState([]);
+  const [eligibleStudents, setEligibleStudents] = useState([]);
+  const [formData, setFormData] = useState(null);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const form = e.target;
@@ -53,27 +58,30 @@ const ManageCompanies = () => {
       position: form[2].value,
       tenth: form[3].value,
       twelfth: form[4].value,
-      cgpa: form[5].value,
-      historyofArrears: form[6].value,
-      currentArrears: form[7].value,
-      interviewDate: form[8].value,
-      rounds: form[9].value,
+      diploma: form[5].value,
+      cgpa: form[6].value,
+      historyofArrears: form[7].value,
+      currentArrears: form[8].value,
+      interviewDate: form[9].value,
+      rounds: form[10].value,
     };
-    console.log(batch);
-
+    setFormData(newCompany);
+    
+    // Fetch eligible students based on criteria
     try {
-      const res = await axios.post(
-        `https://vcetplacement.onrender.com/api/company/addcompany?year=${year}`,
-        newCompany
+      const studentsRes = await axios.get(
+        `https://vcetplacement.onrender.com/api/student/getStudentInfo?year=${year}`
       );
-      setReloadTrigger((prev) => !prev);
-      console.log("Company added on server:", res.data);
+      const eligible = studentsRes.data.filter(student => 
+        parseFloat(student.tenth) >= parseFloat(newCompany.tenth) &&
+        parseFloat(student.twelfth) >= parseFloat(newCompany.twelfth) &&
+        parseFloat(student.cgpa) >= parseFloat(newCompany.cgpa)
+      );
+      setEligibleStudents(eligible);
+      setShowStudentSelect(true);
     } catch (error) {
-      console.error("Error sending to server:", error);
+      console.error("Error fetching students:", error);
     }
-
-    setShowForm(false);
-    form.reset();
   };
 
   useEffect(() => {
@@ -461,6 +469,11 @@ const ManageCompanies = () => {
                         <p className="admin-company-black">
                           12th: <span>{company.twelfth}%</span>
                         </p>
+                        {company.diploma && (
+                          <p className="admin-company-black">
+                            Diploma: <span>{company.diploma}%</span>
+                          </p>
+                        )}
                         <p className="admin-company-black">
                           CGPA: <span>{company.cgpa}</span>
                         </p>
@@ -710,6 +723,7 @@ const ManageCompanies = () => {
                           name="tenth"
                           min="0"
                           max="100"
+                          step="0.01"
                           required
                           className="admin-form-input"
                           placeholder="Enter 10th percentage"
@@ -724,6 +738,7 @@ const ManageCompanies = () => {
                           name="twelfth"
                           min="0"
                           max="100"
+                          step="0.01"
                           required
                           className="admin-form-input"
                           placeholder="Enter 12th percentage"
@@ -732,6 +747,20 @@ const ManageCompanies = () => {
                     </div>
 
                     <div className="admin-form-row">
+                      <div className="admin-form-group">
+                        <label htmlFor="diploma">Diploma Percentage</label>
+                        <input
+                          type="number"
+                          id="diploma"
+                          name="diploma"
+                          min="0"
+                          max="100"
+                          step="0.01"
+                          className="admin-form-input"
+                          placeholder="Enter diploma percentage"
+                        />
+                      </div>
+
                       <div className="admin-form-group">
                         <label htmlFor="cgpa">CGPA</label>
                         <input
@@ -746,7 +775,9 @@ const ManageCompanies = () => {
                           placeholder="Enter CGPA"
                         />
                       </div>
+                    </div>
 
+                    <div className="admin-form-row">
                       <div className="admin-form-group">
                         <label htmlFor="historyArrears">
                           History of Arrears
@@ -760,9 +791,7 @@ const ManageCompanies = () => {
                           placeholder="Enter history of arrears"
                         />
                       </div>
-                    </div>
 
-                    <div className="admin-form-row">
                       <div className="admin-form-group">
                         <label htmlFor="currentArrears">Current Arrears</label>
                         <input
@@ -774,7 +803,9 @@ const ManageCompanies = () => {
                           placeholder="Enter current arrears"
                         />
                       </div>
+                    </div>
 
+                    <div className="admin-form-row">
                       <div className="admin-form-group">
                         <label htmlFor="interviewDate">Date of Interview</label>
                         <input
@@ -785,9 +816,7 @@ const ManageCompanies = () => {
                           className="admin-form-input"
                         />
                       </div>
-                    </div>
 
-                    <div className="admin-form-row">
                       <div className="admin-form-group">
                         <label htmlFor="rounds">Number of Rounds</label>
                         <input
@@ -802,11 +831,12 @@ const ManageCompanies = () => {
                         />
                       </div>
                     </div>
+
                   </div>
 
                   <div className="admin-form-actions">
                     <button type="submit" className="admin-submit-button">
-                      Add Company
+                      Next
                     </button>
                     <button
                       type="button"
@@ -821,6 +851,98 @@ const ManageCompanies = () => {
             </div>
           </div>
         )}
+
+        {/* Student Selection Modal */}
+        {showStudentSelect && (
+          <div className="admin-modal-overlay">
+            <div className="admin-modal-content">
+              <div className="student-selection-header">
+                <h2>Students</h2>
+              </div>
+              
+              <div className="student-selection-controls">
+                <div className="select-all-container">
+                  <input
+                    type="checkbox"
+                    id="selectAll"
+                    onChange={(e) => {
+                      const newSelected = e.target.checked ? eligibleStudents.map(s => s._id) : [];
+                      setSelectedStudents(newSelected);
+                    }}
+                  />
+                  <label htmlFor="selectAll">Select All</label>
+                </div>
+                
+                <div className="action-buttons">
+                  <button 
+                    className="student-action-btn accept"
+                    onClick={() => setSelectedStudents(eligibleStudents.map(s => s._id))}
+                  >
+                    Accept Selected
+                  </button>
+                  <button 
+                    className="student-action-btn reject"
+                    onClick={() => setSelectedStudents([])}
+                  >
+                    Reject Selected
+                  </button>
+                </div>
+              </div>
+              
+              <div className="admin-form-actions" style={{ padding: '1rem', borderTop: '1px solid #e5e7eb' }}>
+                <button 
+                  className="admin-submit-button"
+                  onClick={async () => {
+                    try {
+                      const res = await axios.post(
+                        `https://vcetplacement.onrender.com/api/company/addcompany?year=${year}`,
+                        formData
+                      );
+                      setReloadTrigger(prev => !prev);
+                      setShowStudentSelect(false);
+                      setShowForm(false);
+                      console.log("Company added successfully:", res.data);
+                    } catch (error) {
+                      console.error("Error:", error);
+                    }
+                  }}
+                >
+                  Add Company
+                </button>
+                <button 
+                  className="admin-cancel-button"
+                  onClick={() => {
+                    setShowStudentSelect(false);
+                    setShowForm(false);
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+
+              <div className="student-list">
+                {eligibleStudents.map((student) => (
+                  <div key={student._id} className="student-item">
+                    <input
+                      type="checkbox"
+                      className="student-checkbox"
+                      checked={selectedStudents.includes(student._id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedStudents([...selectedStudents, student._id]);
+                        } else {
+                          setSelectedStudents(selectedStudents.filter(id => id !== student._id));
+                        }
+                      }}
+                    />
+                    <span className="student-name">{student.studentName}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+        
       </div>
     </div>
   );
