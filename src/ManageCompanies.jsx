@@ -338,15 +338,10 @@ const ManageCompanies = () => {
     setStudents((prevStudents) =>
       prevStudents.filter((student) => student.id !== studentId)
     );
-
-
-
-
-  };const filteredStudents = students.filter((student) => {
-    // Make sure student name exists and is a string before filtering
-    const studentName = student.name || "";
-    return studentName.toString().toLowerCase().includes(searchQuery.toLowerCase());
-  });
+  };
+  const filteredStudents = students.filter((student) =>
+    student.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
   return (
     <div className="min-h-screen bg-gradient-animation p-4 relative overflow-hidden">
       <Head>
@@ -585,13 +580,9 @@ const ManageCompanies = () => {
                       <th>Final Status</th>
                       <th>Remove</th>
                     </tr>
-
-
-
-
-
-                  </thead><tbody>
-  {[...filteredStudents]
+                  </thead>
+                 <tbody>
+  {[...students]
     .sort((a, b) => {
       return a.regNo - b.regNo;
     })
