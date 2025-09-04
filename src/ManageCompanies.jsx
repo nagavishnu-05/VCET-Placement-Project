@@ -347,9 +347,13 @@ const ManageCompanies = () => {
       prevStudents.filter((student) => student.id !== studentId)
     );
   };
-  const filteredStudents = students.filter((student) =>
-    student.name.toLowerCase().includes(searchQuery.toLowerCase())
+
+  // Fixed filtering logic for student selection modal
+  const filteredStudents = eligibleStudents.filter((student) =>
+    student.studentName && student.studentName.toLowerCase().includes(searchQuery.toLowerCase())
   );
+  const studentsToRender = filteredStudents.length > 0 ? filteredStudents : eligibleStudents;
+
   return (
     <div className="min-h-screen bg-gradient-animation p-4 relative overflow-hidden">
       <Head>
@@ -520,8 +524,16 @@ const ManageCompanies = () => {
                   <button
                     className="admin-export-excel-button"
                     onClick={() => {
-                      // Here you would typically export the data to Excel
-                      const exportData = filteredStudents.map(
+                      // Filter students based on search query for export
+                      const studentsToExport = students.filter((student) => {
+                        if (!searchQuery.trim()) return true;
+                        const name = student.name ? student.name.toLowerCase() : '';
+                        const regNo = student.regNo ? student.regNo.toString().toLowerCase() : '';
+                        const query = searchQuery.toLowerCase().trim();
+                        return name.includes(query) || regNo.includes(query);
+                      });
+
+                      const exportData = studentsToExport.map(
                         (student, index) => {
                           const rounds =
                             student.rounds[selectedCompany._id] || {};
@@ -594,65 +606,71 @@ const ManageCompanies = () => {
                       <th>Remove</th>
                     </tr>
                   </thead>
-                 <tbody>
-  {[...students]
-    .sort((a, b) => {
-      return a.regNo - b.regNo;
-    })
-    .map((student, index) => {
-      const rounds = student.rounds[selectedCompany._id] || {};
-      const finalStatus = calculateFinalStatus(
-        rounds,
-        selectedCompany.rounds
-      );
+                  <tbody>
+                    {[...students]
+                      .filter((student) => {
+                        if (!searchQuery.trim()) return true;
+                        const name = student.name ? student.name.toLowerCase() : '';
+                        const regNo = student.regNo ? student.regNo.toString().toLowerCase() : '';
+                        const query = searchQuery.toLowerCase().trim();
+                        return name.includes(query) || regNo.includes(query);
+                      })
+                      .sort((a, b) => {
+                        return a.regNo - b.regNo;
+                      })
+                      .map((student, index) => {
+                        const rounds = student.rounds[selectedCompany._id] || {};
+                        const finalStatus = calculateFinalStatus(
+                          rounds,
+                          selectedCompany.rounds
+                        );
 
-      return (
-        <tr key={student.id}>
-          <td>{student.regNo}</td>
-          <td>{student.name}</td>
-          {[...Array(selectedCompany.rounds)].map((_, i) => (
-            <td
-              key={`round-${student.id}-${i + 1}`}
-              onClick={() =>
-                handleRoundStatusChange(
-                  student.id,
-                  `round${i + 1}`,
-                  rounds[`round${i + 1}`] || "rejected"
-                )
-              }
-              style={{ cursor: "pointer" }}
-            >
-              <span
-                className={`round-status ${
-                  rounds[`round${i + 1}`] || "rejected"
-                }`}
-              >
-                {rounds[`round${i + 1}`] || "rejected"}
-              </span>
-            </td>
-          ))}
-          <td
-            key={`final-status-${student.id}`}
-            onClick={() => handleFinalStatusChange()}
-            style={{ cursor: "pointer" }}
-          >
-            <span className={`round-status ${finalStatus}`}>
-              {finalStatus}
-            </span>
-          </td>
-          <td>
-            <button
-              className="admin-action-btn delete"
-              onClick={() => handleDeleteStudent(student.id)}
-            >
-              <FaTrash />
-            </button>
-          </td>
-        </tr>
-      );
-    })}
-</tbody>
-
+                        return (
+                          <tr key={student.id}>
+                            <td>{student.regNo}</td>
+                            <td>{student.name}</td>
+                            {[...Array(selectedCompany.rounds)].map((_, i) => (
+                              <td
+                                key={`round-${student.id}-${i + 1}`}
+                                onClick={() =>
+                                  handleRoundStatusChange(
+                                    student.id,
+                                    `round${i + 1}`,
+                                    rounds[`round${i + 1}`] || "rejected"
+                                  )
+                                }
+                                style={{ cursor: "pointer" }}
+                              >
+                                <span
+                                  className={`round-status ${
+                                    rounds[`round${i + 1}`] || "rejected"
+                                  }`}
+                                >
+                                  {rounds[`round${i + 1}`] || "rejected"}
+                                </span>
+                              </td>
+                            ))}
+                            <td
+                              key={`final-status-${student.id}`}
+                              onClick={() => handleFinalStatusChange()}
+                              style={{ cursor: "pointer" }}
+                            >
+                              <span className={`round-status ${finalStatus}`}>
+                                {finalStatus}
+                              </span>
+                            </td>
+                            <td>
+                              <button
+                                className="admin-action-btn delete"
+                                onClick={() => handleDeleteStudent(student.id)}
+                              >
+                                <FaTrash />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
                 </table>
               </div>
             </div>
@@ -921,7 +939,7 @@ const ManageCompanies = () => {
               </div>
 
               <div className="student-list">
-                {eligibleStudents.map((student) => (
+                {studentsToRender.map((student) => (
                   <div key={student._id} className="student-item">
                     <input
                       type="checkbox"
