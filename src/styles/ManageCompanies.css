@@ -647,6 +647,56 @@
   font-weight: 600;
 }
 
+/* Round Toggle Styles */
+.admin-round-toggle {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  margin: 10px 0 !important;
+  transition: all 0.2s ease !important;
+}
+
+.admin-round-toggle:hover {
+  color: #2563eb !important;
+}
+
+.admin-arrow {
+  font-size: 12px;
+  transition: transform 0.3s ease;
+  display: inline-block;
+}
+
+.admin-arrow.expanded {
+  transform: rotate(180deg);
+}
+
+.admin-round-content {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: all 0.3s ease-in-out;
+}
+
+.admin-round-content.expanded {
+  max-height: 500px;
+  opacity: 1;
+}
+
+/* Ensure each card's expansion is independent */
+.admin-company-card[data-company-id] .admin-round-content {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: all 0.3s ease-in-out;
+}
+
+.admin-company-card[data-company-id] .admin-round-content.expanded {
+  max-height: 500px;
+  opacity: 1;
+}
+
 .admin-round-stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));

@@ -19,6 +19,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import CompanyCard from "./CompanyCard";
 
 const ManageCompanies = () => {
   // useEffect(() => {
@@ -108,102 +109,7 @@ const ManageCompanies = () => {
     setCompanyRoundStats(statsMap);
   }, [companies, fetchCompanyRoundStats]);
 
-  // Local component: individual company card with its own expanded state.
-  // This ensures expanding one company's round details doesn't affect others.
-  const CompanyCard = ({ company }) => {
-    const [expanded, setExpanded] = useState(false);
-
-    const onToggle = (e) => {
-      e.stopPropagation(); // prevent opening the student popup
-      setExpanded((v) => !v);
-    };
-
-    return (
-      <div
-        key={company._id}
-        className="admin-company-card"
-        onClick={() => handleCompanyClick(company)}
-        style={{ cursor: "pointer" }}
-      >
-        <div className="admin-company-header">
-          <h3 className="admin-company-black">{company.name.toUpperCase()}</h3>
-          <button
-            className="admin-delete-company-btn"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleDeleteCompany(company._id);
-            }}
-            title="Delete Company"
-          >
-            <FaTrash className="admin-delete-icon-white" />
-          </button>
-        </div>
-        <div className="admin-company-details">
-          <p className="admin-company-black">
-            <strong>Position:</strong> <span>{company.position}</span>
-          </p>
-          <p className="admin-company-black">
-            <strong>Description:</strong> <span>{company.description}</span>
-          </p>
-          <p className="admin-company-black">
-            <strong>Interview Date:</strong> <span>{company.interviewDate}</span>
-          </p>
-          <p className="admin-company-black">
-            <strong>Rounds:</strong> <span>{company.rounds}</span>
-          </p>
-          <div className="admin-company-requirements">
-            <h4 className="admin-company-black">Requirements</h4>
-            <p className="admin-company-black">10th: <span>{company.tenth}%</span></p>
-            <p className="admin-company-black">12th: <span>{company.twelfth}%</span></p>
-            <p className="admin-company-black">Diploma: <span>{company.diploma}%</span></p>
-            <p className="admin-company-black">CGPA: <span>{company.cgpa}</span></p>
-            <p className="admin-company-black">History of Arrears: <span>{company.historyofArrears}</span></p>
-            <p className="admin-company-black">Current Arrears: <span>{company.currentArrears}</span></p>
-          </div>
-
-          {/* Round Details Section - managed per-card */}
-          {companyRoundStats[company._id] && (
-            <div className="admin-company-round-details" style={{ overflow: 'hidden', transition: 'all 0.3s ease-in-out' }}>
-              <h4
-                className="admin-company-black"
-                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', userSelect: 'none', margin: '10px 0' }}
-                onClick={onToggle}
-              >
-                Round Details
-                <span style={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.3s ease', fontSize: '12px' }}>▼</span>
-              </h4>
-
-              <div style={{ maxHeight: expanded ? '500px' : '0', opacity: expanded ? 1 : 0, transition: 'all 0.3s ease-in-out' }}>
-                <div className="admin-round-stats-grid">
-                  {Object.entries(companyRoundStats[company._id].rounds).map(([roundKey, roundStats]) => (
-                    <div key={roundKey} className="admin-round-stat-item">
-                      <div className="admin-round-stat-header">
-                        <span className="admin-round-name">{roundKey.charAt(0).toUpperCase() + roundKey.slice(1)}</span>
-                      </div>
-                      <div className="admin-round-stat-numbers">
-                        <div className="admin-stat-item selected">
-                          <span className="admin-stat-label">Selected:</span>
-                          <span className="admin-stat-value">{roundStats.selected}</span>
-                        </div>
-                        <div className="admin-stat-item rejected">
-                          <span className="admin-stat-label">Rejected:</span>
-                          <span className="admin-stat-value">{roundStats.rejected}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="admin-total-students">
-                  <span className="admin-total-label">Total Students:</span>
-                  <span className="admin-total-value">{companyRoundStats[company._id].totalStudents}</span>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
+  // ...existing code...
 
   // const addingSortlist = () => {
   //   axios.post(`http://localhost:5000/api/shortlist/addshortlist`, {
@@ -604,7 +510,14 @@ const ManageCompanies = () => {
             ) : (
               <div className="admin-companies-grid">
                 {companies.map((company) => (
-                  <CompanyCard key={company._id} company={company} />
+                  <CompanyCard
+                    key={company._id}
+                    company={company}
+                    companyRoundStats={companyRoundStats}
+                    handleCompanyClick={handleCompanyClick}
+                    handleDeleteCompany={handleDeleteCompany}
+                    year={year}
+                  />
                 ))}
               </div>
             )}
