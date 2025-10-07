@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Head from "next/head";
-import { disableDevTools } from "./utils/disableDevTools";
 import {
   FaBuilding,
   FaSignOutAlt,
@@ -12,19 +11,20 @@ import {
   FaFileExcel,
   FaSearch,
 } from "react-icons/fa";
-import { Link, useLocation } from "react-router-dom";
+import { Link, Navigate, useLocation } from "react-router-dom";
 import Vcet from "./assets/VCET Logo.jpg";
 import CSE from "./assets/CSE LOGO.jpg";
 import "./styles/ManageCompanies.css";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 const ManageCompanies = () => {
-  useEffect(() => {
-    disableDevTools();
-  }, []);
-
+  // useEffect(() => {
+  //   disableDevTools();
+  // }, []);
+  const navigate = useNavigate();
   const location = useLocation();
   const batch =
     localStorage.getItem("seleteBatch") || location.state?.batch?.startYear;
@@ -48,6 +48,177 @@ const ManageCompanies = () => {
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [eligibleStudents, setEligibleStudents] = useState([]);
   const [formData, setFormData] = useState(null);
+  const [companyRoundStats, setCompanyRoundStats] = useState({});
+  // Per-card expanded state will be managed inside each CompanyCard to avoid
+  // shared state issues where toggling one card could affect others.
+
+  // Function to fetch round statistics for a company
+  const fetchCompanyRoundStats = useCallback(async (companyId) => {
+    try {
+      const res = await axios.get(
+        `https://vcetplacement.onrender.com/api/shortlist/getshortlist/${year}/${companyId}`
+      );
+      
+      const shortlistedData = res.data;
+      const stats = {
+        totalStudents: shortlistedData.length,
+        rounds: {}
+      };
+
+      // Calculate stats for each round
+      for (let i = 1; i <= companies.find(c => c._id === companyId)?.rounds || 0; i++) {
+        const roundKey = `round${i}`;
+        const selectedCount = shortlistedData.filter(entry => 
+          entry.rounds?.[roundKey] === true
+        ).length;
+        const rejectedCount = shortlistedData.filter(entry => 
+          entry.rounds?.[roundKey] === false
+        ).length;
+        
+        stats.rounds[roundKey] = {
+          selected: selectedCount,
+          rejected: rejectedCount,
+          total: shortlistedData.length
+        };
+      }
+
+      return stats;
+    } catch (error) {
+      console.error("Error fetching round stats:", error);
+      return {
+        totalStudents: 0,
+        rounds: {}
+      };
+    }
+  }, [year, companies]);
+
+  // Function to fetch round stats for all companies
+  const fetchAllCompanyRoundStats = useCallback(async () => {
+    const statsPromises = companies.map(async (company) => {
+      const stats = await fetchCompanyRoundStats(company._id);
+      return { companyId: company._id, stats };
+    });
+    
+    const allStats = await Promise.all(statsPromises);
+    const statsMap = {};
+    allStats.forEach(({ companyId, stats }) => {
+      statsMap[companyId] = stats;
+    });
+    
+    setCompanyRoundStats(statsMap);
+  }, [companies, fetchCompanyRoundStats]);
+
+  // Local component: individual company card with its own expanded state.
+  // This ensures expanding one company's round details doesn't affect others.
+  const CompanyCard = ({ company }) => {
+    const [expanded, setExpanded] = useState(false);
+
+    const onToggle = (e) => {
+      e.stopPropagation(); // prevent opening the student popup
+      setExpanded((v) => !v);
+    };
+
+    return (
+      <div
+        key={company._id}
+        className="admin-company-card"
+        onClick={() => handleCompanyClick(company)}
+        style={{ cursor: "pointer" }}
+      >
+        <div className="admin-company-header">
+          <h3 className="admin-company-black">{company.name.toUpperCase()}</h3>
+          <button
+            className="admin-delete-company-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDeleteCompany(company._id);
+            }}
+            title="Delete Company"
+          >
+            <FaTrash className="admin-delete-icon-white" />
+          </button>
+        </div>
+        <div className="admin-company-details">
+          <p className="admin-company-black">
+            <strong>Position:</strong> <span>{company.position}</span>
+          </p>
+          <p className="admin-company-black">
+            <strong>Description:</strong> <span>{company.description}</span>
+          </p>
+          <p className="admin-company-black">
+            <strong>Interview Date:</strong> <span>{company.interviewDate}</span>
+          </p>
+          <p className="admin-company-black">
+            <strong>Rounds:</strong> <span>{company.rounds}</span>
+          </p>
+          <div className="admin-company-requirements">
+            <h4 className="admin-company-black">Requirements</h4>
+            <p className="admin-company-black">10th: <span>{company.tenth}%</span></p>
+            <p className="admin-company-black">12th: <span>{company.twelfth}%</span></p>
+            <p className="admin-company-black">Diploma: <span>{company.diploma}%</span></p>
+            <p className="admin-company-black">CGPA: <span>{company.cgpa}</span></p>
+            <p className="admin-company-black">History of Arrears: <span>{company.historyofArrears}</span></p>
+            <p className="admin-company-black">Current Arrears: <span>{company.currentArrears}</span></p>
+          </div>
+
+          {/* Round Details Section - managed per-card */}
+          {companyRoundStats[company._id] && (
+            <div className="admin-company-round-details" style={{ overflow: 'hidden', transition: 'all 0.3s ease-in-out' }}>
+              <h4
+                className="admin-company-black"
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', userSelect: 'none', margin: '10px 0' }}
+                onClick={onToggle}
+              >
+                Round Details
+                <span style={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.3s ease', fontSize: '12px' }}>▼</span>
+              </h4>
+
+              <div style={{ maxHeight: expanded ? '500px' : '0', opacity: expanded ? 1 : 0, transition: 'all 0.3s ease-in-out' }}>
+                <div className="admin-round-stats-grid">
+                  {Object.entries(companyRoundStats[company._id].rounds).map(([roundKey, roundStats]) => (
+                    <div key={roundKey} className="admin-round-stat-item">
+                      <div className="admin-round-stat-header">
+                        <span className="admin-round-name">{roundKey.charAt(0).toUpperCase() + roundKey.slice(1)}</span>
+                      </div>
+                      <div className="admin-round-stat-numbers">
+                        <div className="admin-stat-item selected">
+                          <span className="admin-stat-label">Selected:</span>
+                          <span className="admin-stat-value">{roundStats.selected}</span>
+                        </div>
+                        <div className="admin-stat-item rejected">
+                          <span className="admin-stat-label">Rejected:</span>
+                          <span className="admin-stat-value">{roundStats.rejected}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="admin-total-students">
+                  <span className="admin-total-label">Total Students:</span>
+                  <span className="admin-total-value">{companyRoundStats[company._id].totalStudents}</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // const addingSortlist = () => {
+  //   axios.post(`http://localhost:5000/api/shortlist/addshortlist`, {
+  //     year: year,
+  //     selectedStudents: selectedStudents,
+  //     companyId : company  
+  //   })
+  //   .then((res) => {
+  //     console.log("Shortlist added:", res.data);
+  //   })
+  //   .catch((err) => {
+  //     console.error("Error adding shortlist:", err);
+  //   });
+  // };
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -66,17 +237,31 @@ const ManageCompanies = () => {
       rounds: form[10].value,
     };
     setFormData(newCompany);
-    
-    // Fetch eligible students based on criteria
+   
     try {
       const studentsRes = await axios.get(
         `https://vcetplacement.onrender.com/api/student/getStudentInfo?year=${year}`
       );
-      const eligible = studentsRes.data.filter(student => 
-        parseFloat(student.tenth) >= parseFloat(newCompany.tenth) &&
-        parseFloat(student.twelfth) >= parseFloat(newCompany.twelfth) &&
-        parseFloat(student.cgpa) >= parseFloat(newCompany.cgpa)
-      );
+      const eligible = studentsRes.data.filter(student => {
+            const tenth = parseFloat(student.studentTenthPercentage) || 0;
+            const twelfth = parseFloat(student.studentTwelthPercentage);
+            const diploma = parseFloat(student.studentDiploma);
+            const cgpa = parseFloat(student.studentUGCGPA) || 0;
+            const arrear = parseFloat(student.studentCurrentArrears) || 0 ;
+            const hoa = parseFloat(student.studentHistoryOfArrears) || 0;
+
+            const twelfthValid = !isNaN(twelfth) && twelfth >= parseFloat(newCompany.twelfth);
+            const diplomaValid = !isNaN(diploma) && diploma >= parseFloat(newCompany.diploma);
+            console.log(student.studentName, arrear, newCompany.currentArrears, arrear <= newCompany.currentArrears);
+
+            return (
+              tenth >= parseFloat(newCompany.tenth) &&
+              (twelfthValid || diplomaValid) &&
+              cgpa >= parseFloat(newCompany.cgpa) &&
+              arrear <= parseFloat(newCompany.currentArrears) &&
+              hoa <= parseFloat(newCompany.historyofArrears)
+            );
+          });
       setEligibleStudents(eligible);
       setShowStudentSelect(true);
     } catch (error) {
@@ -98,6 +283,13 @@ const ManageCompanies = () => {
     };
     fetchUserData();
   }, [reloadTrigger, year]);
+
+  // Fetch round stats when companies change
+  useEffect(() => {
+    if (companies.length > 0) {
+      fetchAllCompanyRoundStats();
+    }
+  }, [companies, year, fetchAllCompanyRoundStats]);
 
   const handleDeleteCompany = async(companyId) => {
     try {
@@ -124,7 +316,7 @@ const ManageCompanies = () => {
     };
 
     fetchData();
-  }, []);
+  }, [year]);
 
   console.log(studentInformationsDetail);
 
@@ -154,14 +346,10 @@ const ManageCompanies = () => {
         location.state?.batch?.endYear ||
         new Date().getFullYear();
 
-      await axios.post("https://vcetplacement.onrender.com/api/shortlist/addshortlist", {
-        year,
-        companyId: company._id,
-      });
-
       const res = await axios.get(
         `https://vcetplacement.onrender.com/api/shortlist/getshortlist/${year}/${company._id}`
       );
+
       const shortlistedData = res.data;
 
       const newStudents = shortlistedData.map((entry) => {
@@ -184,23 +372,8 @@ const ManageCompanies = () => {
         };
       });
 
-      setStudents((prevStudents) => {
-        const merged = [...prevStudents];
-
-        newStudents.forEach((newStudent) => {
-          const existing = merged.find((s) => s.id === newStudent.id);
-          if (existing) {
-            existing.rounds = {
-              ...existing.rounds,
-              ...newStudent.rounds,
-            };
-          } else {
-            merged.push(newStudent);
-          }
-        });
-
-        return merged;
-      });
+      // 🔹 Just replace the students list for that company
+      setStudents(newStudents);
 
       setShowStudentPopup(true);
     } catch (error) {
@@ -275,7 +448,7 @@ const ManageCompanies = () => {
       });
       console.log("Sending updates", updates);
 
-      const res = await axios.put(
+      await axios.put(
         "https://vcetplacement.onrender.com/api/shortlist/update-rounds",
         {
           year,
@@ -323,6 +496,13 @@ const ManageCompanies = () => {
       // Save merged data
       localStorage.setItem("studentRounds", JSON.stringify(mergedRounds));
 
+      // Refresh round stats for the current company
+      const updatedStats = await fetchCompanyRoundStats(selectedCompany._id);
+      setCompanyRoundStats(prev => ({
+        ...prev,
+        [selectedCompany._id]: updatedStats
+      }));
+
       handleClosePopup();
     } catch (error) {
       console.error("Error updating rounds:", error?.response?.data || error);
@@ -347,13 +527,9 @@ const ManageCompanies = () => {
       prevStudents.filter((student) => student.id !== studentId)
     );
   };
-
-  // Fixed filtering logic for student selection modal
-  const filteredStudents = eligibleStudents.filter((student) =>
-    student.studentName && student.studentName.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredStudents = students.filter((student) =>
+    student.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
-  const studentsToRender = filteredStudents.length > 0 ? filteredStudents : eligibleStudents;
-
   return (
     <div className="min-h-screen bg-gradient-animation p-4 relative overflow-hidden">
       <Head>
@@ -387,7 +563,7 @@ const ManageCompanies = () => {
 
         {/* Navigation */}
         <div className="admin-navbar">
-          <div className="batch-info">
+          <div className="batch-info"  onClick={() => navigate("/AdminDashboard")} style={{ cursor: "pointer" }}>
             <FaBuilding className="admin-nav-icon" />
             <span className="batch-label">
               {year ? `Batch ${year - 4}-${year}` : "Loading Batch..."}
@@ -428,69 +604,7 @@ const ManageCompanies = () => {
             ) : (
               <div className="admin-companies-grid">
                 {companies.map((company) => (
-                  <div
-                    key={company._id}
-                    className="admin-company-card"
-                    onClick={() => handleCompanyClick(company)}
-                    style={{ cursor: "pointer" }}
-                  >
-                    <div className="admin-company-header">
-                      <h3 className="admin-company-black">
-                        {company.name.toUpperCase()}
-                      </h3>
-                      <button
-                        className="admin-delete-company-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteCompany(company._id);
-                        }}
-                        title="Delete Company"
-                      >
-                        <FaTrash className="admin-delete-icon-white" />
-                      </button>
-                    </div>
-                    <div className="admin-company-details">
-                      <p className="admin-company-black">
-                        <strong>Position:</strong>{" "}
-                        <span>{company.position}</span>
-                      </p>
-                      <p className="admin-company-black">
-                        <strong>Description:</strong>{" "}
-                        <span>{company.description}</span>
-                      </p>
-                      <p className="admin-company-black">
-                        <strong>Interview Date:</strong>{" "}
-                        <span>{company.interviewDate}</span>
-                      </p>
-                      <p className="admin-company-black">
-                        <strong>Rounds:</strong> <span>{company.rounds}</span>
-                      </p>
-                      <div className="admin-company-requirements">
-                        <h4 className="admin-company-black">Requirements</h4>
-                        <p className="admin-company-black">
-                          10th: <span>{company.tenth}%</span>
-                        </p>
-                        <p className="admin-company-black">
-                          12th: <span>{company.twelfth}%</span>
-                        </p>
-                        {company.diploma && (
-                          <p className="admin-company-black">
-                            Diploma: <span>{company.diploma}%</span>
-                          </p>
-                        )}
-                        <p className="admin-company-black">
-                          CGPA: <span>{company.cgpa}</span>
-                        </p>
-                        <p className="admin-company-black">
-                          History of Arrears:{" "}
-                          <span>{company.historyofArrears}</span>
-                        </p>
-                        <p className="admin-company-black">
-                          Current Arrears: <span>{company.currentArrears}</span>
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+                  <CompanyCard key={company._id} company={company} />
                 ))}
               </div>
             )}
@@ -524,16 +638,8 @@ const ManageCompanies = () => {
                   <button
                     className="admin-export-excel-button"
                     onClick={() => {
-                      // Filter students based on search query for export
-                      const studentsToExport = students.filter((student) => {
-                        if (!searchQuery.trim()) return true;
-                        const name = student.name ? student.name.toLowerCase() : '';
-                        const regNo = student.regNo ? student.regNo.toString().toLowerCase() : '';
-                        const query = searchQuery.toLowerCase().trim();
-                        return name.includes(query) || regNo.includes(query);
-                      });
-
-                      const exportData = studentsToExport.map(
+                      // Here you would typically export the data to Excel
+                      const exportData = filteredStudents.map(
                         (student, index) => {
                           const rounds =
                             student.rounds[selectedCompany._id] || {};
@@ -606,71 +712,96 @@ const ManageCompanies = () => {
                       <th>Remove</th>
                     </tr>
                   </thead>
-                  <tbody>
-                    {[...students]
-                      .filter((student) => {
-                        if (!searchQuery.trim()) return true;
-                        const name = student.name ? student.name.toLowerCase() : '';
-                        const regNo = student.regNo ? student.regNo.toString().toLowerCase() : '';
-                        const query = searchQuery.toLowerCase().trim();
-                        return name.includes(query) || regNo.includes(query);
-                      })
-                      .sort((a, b) => {
-                        return a.regNo - b.regNo;
-                      })
-                      .map((student, index) => {
-                        const rounds = student.rounds[selectedCompany._id] || {};
-                        const finalStatus = calculateFinalStatus(
-                          rounds,
-                          selectedCompany.rounds
-                        );
+                 <tbody>
+ 
+{[...students]
+  .sort((a, b) => {
+    const roundsA = a.rounds[selectedCompany._id] || {};
+    const roundsB = b.rounds[selectedCompany._id] || {};
 
-                        return (
-                          <tr key={student.id}>
-                            <td>{student.regNo}</td>
-                            <td>{student.name}</td>
-                            {[...Array(selectedCompany.rounds)].map((_, i) => (
-                              <td
-                                key={`round-${student.id}-${i + 1}`}
-                                onClick={() =>
-                                  handleRoundStatusChange(
-                                    student.id,
-                                    `round${i + 1}`,
-                                    rounds[`round${i + 1}`] || "rejected"
-                                  )
-                                }
-                                style={{ cursor: "pointer" }}
-                              >
-                                <span
-                                  className={`round-status ${
-                                    rounds[`round${i + 1}`] || "rejected"
-                                  }`}
-                                >
-                                  {rounds[`round${i + 1}`] || "rejected"}
-                                </span>
-                              </td>
-                            ))}
-                            <td
-                              key={`final-status-${student.id}`}
-                              onClick={() => handleFinalStatusChange()}
-                              style={{ cursor: "pointer" }}
-                            >
-                              <span className={`round-status ${finalStatus}`}>
-                                {finalStatus}
-                              </span>
-                            </td>
-                            <td>
-                              <button
-                                className="admin-action-btn delete"
-                                onClick={() => handleDeleteStudent(student.id)}
-                              >
-                                <FaTrash />
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                  </tbody>
+    const finalA = calculateFinalStatus(roundsA, selectedCompany.rounds);
+    const finalB = calculateFinalStatus(roundsB, selectedCompany.rounds);
+
+    // 1. Prioritize by final status first
+    const statusOrder = { selected: 0, rejected: 1 };
+    if (statusOrder[finalA] !== statusOrder[finalB]) {
+      return statusOrder[finalA] - statusOrder[finalB];
+    }
+
+    // 2. If both are rejected, check how far they reached
+    const getProgress = (rounds) => {
+      let progress = 0;
+      for (let i = 1; i <= selectedCompany.rounds; i++) {
+        if (rounds[`round${i}`] === "selected") {
+          progress = i;
+        } else {
+          break;
+        }
+      }
+      return progress;
+    };
+
+    const progressA = getProgress(roundsA);
+    const progressB = getProgress(roundsB);
+
+    if (progressA !== progressB) {
+      return progressB - progressA; // higher progress comes first
+    }
+
+    // 3. If still same, fallback to regNo
+    return a.regNo - b.regNo;
+  })
+  .map((student) => {
+    const rounds = student.rounds[selectedCompany._id] || {};
+    const finalStatus = calculateFinalStatus(rounds, selectedCompany.rounds);
+
+    return (
+      <tr key={student.id}>
+        <td>{student.regNo}</td>
+        <td>{student.name}</td>
+        {[...Array(selectedCompany.rounds)].map((_, i) => (
+          <td
+            key={`round-${student.id}-${i + 1}`}
+            onClick={() =>
+              handleRoundStatusChange(
+                student.id,
+                `round${i + 1}`,
+                rounds[`round${i + 1}`] || "rejected"
+              )
+            }
+            style={{ cursor: "pointer" }}
+          >
+            <span
+              className={`round-status ${
+                rounds[`round${i + 1}`] || "rejected"
+              }`}
+            >
+              {rounds[`round${i + 1}`] || "rejected"}
+            </span>
+          </td>
+        ))}
+        <td
+          key={`final-status-${student.id}`}
+          onClick={() => handleFinalStatusChange()}
+          style={{ cursor: "pointer" }}
+        >
+          <span className={`round-status ${finalStatus}`}>
+            {finalStatus}
+          </span>
+        </td>
+        <td>
+          <button
+            className="admin-action-btn delete"
+            onClick={() => handleDeleteStudent(student.id)}
+          >
+            <FaTrash />
+          </button>
+        </td>
+      </tr>
+    );
+  })}
+</tbody>
+
                 </table>
               </div>
             </div>
@@ -870,64 +1001,120 @@ const ManageCompanies = () => {
           </div>
         )}
 
-        {/* Student Selection Modal */}
         {showStudentSelect && (
           <div className="admin-modal-overlay">
             <div className="admin-modal-content">
-              <div className="student-selection-header">
-                <h2>Students</h2>
-              </div>
-              
-              <div className="student-selection-controls">
-                <div className="select-all-container">
-                  <input
-                    type="checkbox"
-                    id="selectAll"
-                    onChange={(e) => {
-                      const newSelected = e.target.checked ? eligibleStudents.map(s => s._id) : [];
-                      setSelectedStudents(newSelected);
-                    }}
-                  />
-                  <label htmlFor="selectAll">Select All</label>
-                </div>
-                
-                <div className="action-buttons">
-                  <button 
-                    className="student-action-btn accept"
-                    onClick={() => setSelectedStudents(eligibleStudents.map(s => s._id))}
-                  >
-                    Accept Selected
-                  </button>
-                  <button 
-                    className="student-action-btn reject"
-                    onClick={() => setSelectedStudents([])}
-                  >
-                    Reject Selected
-                  </button>
+                <div className="student-selection-header flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold text-gray-800">Students</h2>
+                  <div className="student-selection-controls">
+                  <div className="select-all-container flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="selectAll"
+                      onChange={(e) => {
+                        const newSelected = e.target.checked ? eligibleStudents.map(s => s._id) : [];
+                        setSelectedStudents(newSelected);
+                      }}
+                      className="w-4 h-4 accent-indigo-500 cursor-pointer"
+                    />
+                    <label htmlFor="selectAll" className="text-md font-medium text-gray-700 cursor-pointer">Select All ({selectedStudents.length})</label>
+                  </div>
                 </div>
               </div>
-              
+             
+              <table className="min-w-full border border-gray-200 rounded-xl shadow-md overflow-hidden">
+                <thead className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-sm font-semibold tracking-wide uppercase">Select</th>
+                    <th className="px-6 py-3 text-left text-sm font-semibold tracking-wide uppercase">Register Number</th>
+                    <th className="px-6 py-3 text-left text-sm font-semibold tracking-wide uppercase">Name</th>
+                    <th className="px-6 py-3 text-left text-sm font-semibold tracking-wide uppercase">10</th>
+                    <th className="px-6 py-3 text-left text-sm font-semibold tracking-wide uppercase">12</th>
+                    <th className="px-6 py-3 text-left text-sm font-semibold tracking-wide uppercase">Diploma</th>
+                    <th className="px-6 py-3 text-left text-sm font-semibold tracking-wide uppercase">CGPA</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {eligibleStudents.map((student, index) => (
+                    <tr
+                      key={student._id}
+                      className={`transition-colors duration-200 ${
+                        index % 2 === 0 ? "bg-white hover:bg-indigo-50" : "bg-gray-50 hover:bg-purple-50"
+                      }`}
+                    >
+                      <td className="px-6 py-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedStudents.includes(student._id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedStudents([...selectedStudents, student._id]);
+                            } else {
+                              setSelectedStudents(
+                                selectedStudents.filter((id) => id !== student._id)
+                              );
+                            }
+                          }}
+                          className="w-5 h-5 accent-purple-500 cursor-pointer"
+                        />
+                      </td>
+                      <td className="px-6 py-4 text-300 font-medium text-gray-700">{student.studentRegisterNumber}</td>
+                      <td className="px-6 py-4 text-300 font-medium text-gray-700">{student.studentName}</td>
+                      <td className="px-6 py-4 text-300 font-medium text-gray-700">{student.studentTenthPercentage}</td>
+                      <td className="px-6 py-4 text-300 font-medium text-gray-700">{student.studentTwelthPercentage}</td>
+                      <td className="px-6 py-4 text-300 font-medium text-gray-700">{student.studentDiploma}</td>
+                      <td className="px-6 py-4 text-300 font-medium text-gray-700">{student.studentUGCGPA}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+
+             
+
+             
               <div className="admin-form-actions" style={{ padding: '1rem', borderTop: '1px solid #e5e7eb' }}>
-                <button 
+                <button
                   className="admin-submit-button"
-                  onClick={async () => {
-                    try {
-                      const res = await axios.post(
-                        `https://vcetplacement.onrender.com/api/company/addcompany?year=${year}`,
-                        formData
-                      );
-                      setReloadTrigger(prev => !prev);
-                      setShowStudentSelect(false);
-                      setShowForm(false);
-                      console.log("Company added successfully:", res.data);
-                    } catch (error) {
-                      console.error("Error:", error);
-                    }
-                  }}
+                   onClick={async () => {
+                      try {
+                        const companyRes = await axios.post(
+                          `https://vcetplacement.onrender.com/api/company/addcompany?year=${year}`,
+                          formData
+                        );
+
+                        console.log("Company added successfully:", companyRes.data);
+
+                        setReloadTrigger(prev => !prev);
+                        setShowStudentSelect(false);
+                        setShowForm(false);
+
+                        const companyId = companyRes.data._id;
+                        console.log(selectedStudents);
+                        try{
+                            const shortlistRes = await axios.post(
+                            "https://vcetplacement.onrender.com/api/shortlist/addshortlist",
+                            {
+                              year: year,
+                              companyId: companyId,
+                              studentIds: selectedStudents
+                            }
+                          );
+                          setSelectedStudents(null);
+                          console.log("Shortlist added:", shortlistRes.data);
+                        }catch (error) {
+                          console.error("Shortlist Error: " , error);
+                        }
+
+                      } catch (error) {
+                        console.error("Error:", error);
+                      }
+                    }}
+
                 >
                   Add Company
                 </button>
-                <button 
+                <button
                   className="admin-cancel-button"
                   onClick={() => {
                     setShowStudentSelect(false);
@@ -938,29 +1125,10 @@ const ManageCompanies = () => {
                 </button>
               </div>
 
-              <div className="student-list">
-                {studentsToRender.map((student) => (
-                  <div key={student._id} className="student-item">
-                    <input
-                      type="checkbox"
-                      className="student-checkbox"
-                      checked={selectedStudents.includes(student._id)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedStudents([...selectedStudents, student._id]);
-                        } else {
-                          setSelectedStudents(selectedStudents.filter(id => id !== student._id));
-                        }
-                      }}
-                    />
-                    <span className="student-name">{student.studentName}</span>
-                  </div>
-                ))}
-              </div>
             </div>
           </div>
         )}
-        
+       
       </div>
     </div>
   );
