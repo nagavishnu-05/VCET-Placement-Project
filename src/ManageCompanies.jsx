@@ -55,20 +55,7 @@ const ManageCompanies = () => {
   const [students, setStudents] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Analytics state for all rounds
-  const [roundStats, setRoundStats] = useState({
-    1: { attended: 0, selected: 0, rejected: 0 },
-    2: { attended: 0, selected: 0, rejected: 0 },
-    3: { attended: 0, selected: 0, rejected: 0 },
-    4: { attended: 0, selected: 0, rejected: 0 },
-    5: { attended: 0, selected: 0, rejected: 0 }
-  });
-  const [totalStats, setTotalStats] = useState({
-    totalCompanies: 0,
-    totalSelected: 0,
-    totalRejected: 0,
-    averageSuccessRate: 0
-  });
+
 
   console.log(year);
   console.log(batch);
@@ -457,13 +444,36 @@ const ManageCompanies = () => {
               updatedRounds[`round${i}`] = "rejected";
             }
           }
-          if (
-            round === `round${selectedCompany.rounds}` &&
-            nextStatus === "selected"
-          ) {
-            for (let i = 1; i <= selectedCompany.rounds; i++) {
+          if (nextStatus === "selected") {
+            for (let i = 1; i <= roundNum; i++) {
               updatedRounds[`round${i}`] = "selected";
             }
+          }
+          return {
+            ...student,
+            rounds: {
+              ...student.rounds,
+              [selectedCompany._id]: updatedRounds,
+            },
+          };
+        }
+        return student;
+      });
+    });
+  };
+
+  const handleFinalStatusToggle = (studentId, currentFinalStatus) => {
+    setStudents((prevStudents) => {
+      return prevStudents.map((student) => {
+        if (student.id === studentId) {
+          const currentRounds = student.rounds[selectedCompany._id] || {};
+          const statusOrder = ["rejected", "selected"];
+          const nextStatus =
+            statusOrder[(statusOrder.indexOf(currentFinalStatus) + 1) % 2];
+
+          const updatedRounds = { ...currentRounds };
+          for (let i = 1; i <= selectedCompany.rounds; i++) {
+            updatedRounds[`round${i}`] = nextStatus;
           }
           return {
             ...student,
@@ -1036,31 +1046,36 @@ const ManageCompanies = () => {
                       exportSource = students.filter(s => calculateFinalStatus(s.rounds[selectedCompany._id] || {}, selectedCompany.rounds) === 'rejected');
                     } else if (exportFilter.startsWith('Round ')) {
                       roundNumber = parseInt(exportFilter.split(' ')[1]);
-                      if (roundNumber === 1) {
-                        exportSource = students; // All students attended round 1
-                      } else {
-                        exportSource = students.filter(s => {
-                          const rounds = s.rounds[selectedCompany._id] || {};
-                          return rounds[`round${roundNumber - 1}`] === 'selected';
-                        });
-                      }
+                      exportSource = students.filter(s => {
+                        const rounds = s.rounds[selectedCompany._id] || {};
+                        return rounds[`round${roundNumber}`] === 'selected';
+                      });
                       fileName = `${selectedCompany.name}_Round_${roundNumber}.xlsx`;
                     }
 
                     const exportData = exportSource.map((student, index) => {
                       const rounds = student.rounds[selectedCompany._id] || {};
-                      const row = {
-                        "S.No": index + 1,
-                        "Reg. No.": student.regNo,
-                        Name: student.name,
-                      };
-                      for (let i = 1; i <= selectedCompany.rounds; i++) {
-                        const key = `round${i}`;
-                        const val = rounds[key] || "rejected";
-                        row[`Round ${i}`] = val.charAt(0).toUpperCase() + val.slice(1);
+                      if (exportFilter.startsWith('Round ')) {
+                        // For round-wise exports, only include S.No and Name
+                        return {
+                          "S.No": index + 1,
+                          "Name": student.name,
+                        };
+                      } else {
+                        // For other exports, include full details
+                        const row = {
+                          "S.No": index + 1,
+                          "Reg. No.": student.regNo,
+                          Name: student.name,
+                        };
+                        for (let i = 1; i <= selectedCompany.rounds; i++) {
+                          const key = `round${i}`;
+                          const val = rounds[key] || "rejected";
+                          row[`Round ${i}`] = val.charAt(0).toUpperCase() + val.slice(1);
+                        }
+                        row["Final Status"] = calculateFinalStatus(rounds, selectedCompany.rounds).charAt(0).toUpperCase() + calculateFinalStatus(rounds, selectedCompany.rounds).slice(1);
+                        return row;
                       }
-                      row["Final Status"] = calculateFinalStatus(rounds, selectedCompany.rounds).charAt(0).toUpperCase() + calculateFinalStatus(rounds, selectedCompany.rounds).slice(1);
-                      return row;
                     });
 
                     if (exportData.length === 0) return;
@@ -1165,7 +1180,7 @@ const ManageCompanies = () => {
                           ))}
                           <td
                             key={`final-status-${student.id}`}
-                            onClick={() => handleFinalStatusChange()}
+                            onClick={() => handleFinalStatusToggle(student.id, finalStatus)}
                             style={{ cursor: "pointer" }}
                           >
                             <span className={`round-status ${finalStatus}`}>
