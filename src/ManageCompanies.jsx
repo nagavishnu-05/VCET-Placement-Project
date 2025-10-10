@@ -1016,6 +1016,9 @@ const ManageCompanies = () => {
                   <option value="all">All students</option>
                   <option value="selected">Selected only</option>
                   <option value="rejected">Rejected only</option>
+                  {[...Array(selectedCompany.rounds)].map((_, i) => (
+                    <option key={i} value={`Round ${i + 1}`}>Round {i + 1}</option>
+                  ))}
                 </select>
                 <button
                   className="admin-export-excel-button"
@@ -1024,16 +1027,31 @@ const ManageCompanies = () => {
                     if (!students || students.length === 0) return;
 
                     let exportSource = students;
+                    let fileName = `${selectedCompany.name}_Student_Status.xlsx`;
+                    let roundNumber = null;
+
                     if (exportFilter === 'selected') {
                       exportSource = students.filter(s => calculateFinalStatus(s.rounds[selectedCompany._id] || {}, selectedCompany.rounds) === 'selected');
                     } else if (exportFilter === 'rejected') {
                       exportSource = students.filter(s => calculateFinalStatus(s.rounds[selectedCompany._id] || {}, selectedCompany.rounds) === 'rejected');
+                    } else if (exportFilter.startsWith('Round ')) {
+                      roundNumber = parseInt(exportFilter.split(' ')[1]);
+                      if (roundNumber === 1) {
+                        exportSource = students; // All students attended round 1
+                      } else {
+                        exportSource = students.filter(s => {
+                          const rounds = s.rounds[selectedCompany._id] || {};
+                          return rounds[`round${roundNumber - 1}`] === 'selected';
+                        });
+                      }
+                      fileName = `${selectedCompany.name}_Round_${roundNumber}.xlsx`;
                     }
 
                     const exportData = exportSource.map((student, index) => {
                       const rounds = student.rounds[selectedCompany._id] || {};
                       const row = {
                         "S.No": index + 1,
+                        "Reg. No.": student.regNo,
                         Name: student.name,
                       };
                       for (let i = 1; i <= selectedCompany.rounds; i++) {
@@ -1047,19 +1065,10 @@ const ManageCompanies = () => {
 
                     if (exportData.length === 0) return;
 
-                    const headers = Object.keys(exportData[0]);
-                    const csvContent = [
-                      headers.join(","),
-                      ...exportData.map((row) =>
-                        headers.map((header) => row[header]).join(",")
-                      ),
-                    ].join("\n");
-
-                    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-                    const link = document.createElement("a");
-                    link.href = URL.createObjectURL(blob);
-                    link.download = `${selectedCompany.name}_Student_Status.csv`;
-                    link.click();
+                    const ws = XLSX.utils.json_to_sheet(exportData);
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, "Student Rounds");
+                    XLSX.writeFile(wb, fileName);
                   }}
                 >
                   <FaFileExcel className="admin-excel-icon" />
