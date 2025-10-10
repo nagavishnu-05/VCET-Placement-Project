@@ -6,9 +6,9 @@ import {
   FaSignOutAlt,
   FaUsers,
   FaTimes,
+  FaSearch
 } from "react-icons/fa";
 import { Link, useLocation } from "react-router-dom";
-import { disableDevTools } from "./utils/disableDevTools";
 import Vcet from "./assets/VCET Logo.jpg";
 import CSE from "./assets/CSE LOGO.jpg";
 import "./styles/ManageStudents.css";
@@ -17,9 +17,9 @@ import axios from "axios";
 
 
 const ManageStudents = () => {
-  useEffect(() => {
-    disableDevTools();
-  }, []);
+  // useEffect(() => {
+  //   disableDevTools();
+  // }, []);
 
   const location = useLocation();
   const batch = location.state?.batch;
@@ -31,6 +31,7 @@ const ManageStudents = () => {
   const [companies, setCompanies] = useState([]);
   const [studentInformationsDetail, setStudentInformationDetail] = useState([]);
   const [studentRounds, setStudentRounds] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -50,39 +51,49 @@ const ManageStudents = () => {
 
   useEffect(() => {
     const loadData = async () => {
-      const savedStudents = localStorage.getItem("studentRounds");
-      const savedCompanies = localStorage.getItem("companies");
-
       try {
         const res = await axios.get(
           `https://vcetplacement.onrender.com/api/company/ShowAllcompanies?year=${year}`
         );
         setCompanies(res.data);
-        console.log("User data fetched:", res.data);
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-      }
+        console.log("Companies fetched:", res.data);
 
-      if (savedCompanies) {
-        const parsedCompanies = JSON.parse(savedCompanies);
-        setCompanies(parsedCompanies);
-      }
-
-      if (savedStudents) {
-          const parsed = JSON.parse(savedStudents);
-      const converted = Array.isArray(parsed)
-        ? parsed
-        : Object.entries(parsed).map(([studentId, rounds]) => ({ studentId, rounds }));
-      setStudentRounds(converted);
+        // Fetch student rounds from API
+        const studentRoundsMap = {};
+        for (const company of res.data) {
+          try {
+            const shortlistRes = await axios.get(
+              `https://vcetplacement.onrender.com/api/shortlist/getshortlist/${year}/${company._id}`
+            );
+            const shortlisted = shortlistRes.data;
+            shortlisted.forEach((entry) => {
+              const studentId = entry.studentId._id;
+              if (!studentRoundsMap[studentId]) studentRoundsMap[studentId] = {};
+              const roundsData = {};
+              for (let i = 1; i <= company.rounds; i++) {
+                const key = `round${i}`;
+                roundsData[key] = entry.rounds?.[key] === true ? "selected" : "rejected";
+              }
+              studentRoundsMap[studentId][company._id] = roundsData;
+            });
+          } catch (e) {
+            console.log(`Error fetching shortlist for company ${company._id}:`, e);
           }
+        }
+        const studentRoundsArray = Object.entries(studentRoundsMap).map(([studentId, rounds]) => ({ studentId, rounds }));
+        setStudentRounds(studentRoundsArray);
+        console.log("Student rounds fetched:", studentRoundsArray);
+      } catch (error) {
+        console.error("Error fetching companies:", error);
+      }
     };
 
     loadData();
 
-    const intervalId = setInterval(loadData, 1000);
+    const intervalId = setInterval(loadData, 10000); // Reduced frequency to avoid too many API calls
 
     return () => clearInterval(intervalId);
-  }, []);
+  }, [year]);
 
   const handleLogout = () => {
     window.location.href = "/";
@@ -94,7 +105,7 @@ const ManageStudents = () => {
 
   setSelectedStudent({ ...student, rounds: roundData });
   console.log(selectedStudent);
-  
+ 
   setShowRoundDetails(true);
   };
 
@@ -106,7 +117,7 @@ const ManageStudents = () => {
 
     // Check if all rounds are selected
     const allRoundsSelected = Object.entries(companyRounds).every(
-      ([round, status]) => status === "selected"
+      ([, status]) => status === "selected"
     );
 
     return allRoundsSelected ? "Selected" : "Rejected";
@@ -174,6 +185,11 @@ const rounds = found?.rounds || {};
 
       return row;
     });
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "All Students Rounds");
+    XLSX.writeFile(wb, "All_Students_Rounds_Report.xlsx");
   };
 
   return (
@@ -228,6 +244,15 @@ const rounds = found?.rounds || {};
           <div className="manage-students-header">
             <h2 className="manage-students-title">Students</h2>
             <div className="student-header-right">
+              <div className="student-search-container">
+                <FaSearch className="student-search-icon" />
+                <input
+                  type="text"
+                  placeholder="Search by Name or Reg. No..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
               <button
                 className="student-export-btn"
                 onClick={handleExportAllStudents}
@@ -236,7 +261,6 @@ const rounds = found?.rounds || {};
               </button>
             </div>
           </div>
-
           <div className="student-table-container">
             <table className="student-table">
               <thead>
@@ -248,8 +272,18 @@ const rounds = found?.rounds || {};
               </thead>
               <tbody>
                 {[...studentInformationsDetail]
+                  .filter((student) => {
+                    if (!searchQuery) return true; // show all if no search
+                    const query = searchQuery.toLowerCase();
+                    return (
+                      student.studentName.toLowerCase().includes(query) || // search by name
+                      student.studentRegisterNumber
+                        .toString()
+                        .includes(query) // search by regno
+                    );
+                  })
                   .sort((a, b) => a.studentRegisterNumber - b.studentRegisterNumber)
-                  .map((student, index) => (
+                  .map((student) => (
                     <tr key={student._id}>
                       <td>{student.studentRegisterNumber}</td>
                       <td>{student.studentName}</td>
@@ -282,7 +316,7 @@ const rounds = found?.rounds || {};
           <div className="student-rounds-modal">
             <div className="student-rounds-content">
               <div className="student-rounds-header">
-                <h2>{selectedStudent.name} - Company Rounds</h2>
+                <h2>{selectedStudent.studentName} ({selectedStudent.studentRegisterNumber}) - Company Rounds</h2>
                 <button
                   className="student-rounds-close"
                   onClick={() => setShowRoundDetails(false)}
@@ -296,7 +330,7 @@ const rounds = found?.rounds || {};
                     {Object.entries(selectedStudent.rounds).map(
                       ([companyId, rounds]) => {
                         const company = companies.find((c) => c._id === companyId);
-                        
+                       
                         if (!company) return null;
                         return (
                           <div key={companyId} className="company-round-card">
