@@ -512,13 +512,16 @@ const ManageCompanies = () => {
       });
       console.log("Sending updates", updates);
 
-      await axios.put(
+      const response = await axios.put(
         "https://vcetplacement.onrender.com/api/shortlist/update-rounds",
         {
           year,
           updates,
         }
       );
+      if (response.data && response.data.error) {
+        throw new Error(response.data.error);
+      }
       console.log("▶ Final Updates Sending", updates);
       toast("Rounds Update Successfully", {
         position: "top-right",
@@ -528,37 +531,53 @@ const ManageCompanies = () => {
         type: "success",
       });
 
-      // Get previous data from localStorage
-      const existingRounds =
-        JSON.parse(localStorage.getItem("studentRounds")) || [];
+      // Close popup immediately after showing toast
+      handleClosePopup();
 
-      // Convert to a map for easier merging
-      const existingMap = {};
-      existingRounds.forEach((s) => {
-        existingMap[s.studentId] = s.rounds;
-      });
+      // Handle localStorage merging safely
+      try {
+        const existingRoundsData = localStorage.getItem("studentRounds");
+        let existingRounds = [];
+        if (existingRoundsData) {
+          const parsed = JSON.parse(existingRoundsData);
+          if (Array.isArray(parsed)) {
+            existingRounds = parsed;
+          } else {
+            console.warn("Invalid studentRounds data in localStorage, starting fresh.");
+          }
+        }
 
-      // Merge new updates into existing
-      students.forEach((student) => {
-        const id = student.id || student._id;
-        const newRounds = student.rounds;
+        // Convert to a map for easier merging
+        const existingMap = {};
+        existingRounds.forEach((s) => {
+          existingMap[s.studentId] = s.rounds;
+        });
 
-        existingMap[id] = {
-          ...(existingMap[id] || {}),
-          ...newRounds,
-        };
-      });
+        // Merge new updates into existing
+        students.forEach((student) => {
+          const id = student.id || student._id;
+          const newRounds = student.rounds;
 
-      // Convert back to array
-      const mergedRounds = Object.entries(existingMap).map(
-        ([studentId, rounds]) => ({
-          studentId,
-          rounds,
-        })
-      );
+          existingMap[id] = {
+            ...(existingMap[id] || {}),
+            ...newRounds,
+          };
+        });
 
-      // Save merged data
-      localStorage.setItem("studentRounds", JSON.stringify(mergedRounds));
+        // Convert back to array
+        const mergedRounds = Object.entries(existingMap).map(
+          ([studentId, rounds]) => ({
+            studentId,
+            rounds,
+          })
+        );
+
+        // Save merged data
+        localStorage.setItem("studentRounds", JSON.stringify(mergedRounds));
+      } catch (localError) {
+        console.error("Failed to update localStorage:", localError);
+        // Don't throw - API succeeded, localStorage is secondary
+      }
 
       // Refresh round stats for the current company
       const updatedStats = await fetchCompanyRoundStats(selectedCompany._id);
@@ -566,8 +585,6 @@ const ManageCompanies = () => {
         ...prev,
         [selectedCompany._id]: updatedStats
       }));
-
-      handleClosePopup();
     } catch (error) {
       console.error("Error updating rounds:", error?.response?.data || error);
       toast("Failed to update student rounds.", {
