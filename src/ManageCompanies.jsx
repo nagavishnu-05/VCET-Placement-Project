@@ -68,6 +68,8 @@ const ManageCompanies = () => {
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [eligibleStudents, setEligibleStudents] = useState([]);
   const [formData, setFormData] = useState(null);
+  const [modalYear] = useState(year);
+  const [studentSearch, setStudentSearch] = useState("");
   const [companyRoundStats, setCompanyRoundStats] = useState({});
   // Analytics state variables
   const [totalRound1Attended, setTotalRound1Attended] = useState(0);
@@ -341,6 +343,7 @@ const ManageCompanies = () => {
   };
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [companySearchQuery, setCompanySearchQuery] = useState("");
   const [studentInformationsDetail, setStudentInformationDetail] = useState([]);
   const [exportFilter, setExportFilter] = useState("all"); // all | selected | rejected
 
@@ -367,6 +370,47 @@ const ManageCompanies = () => {
       setCompanies(JSON.parse(savedCompanies));
     }
   }, []);
+
+  // Fetch eligible students when modalYear changes
+  useEffect(() => {
+    if (showStudentSelect && formData && modalYear) {
+      const fetchEligibleStudents = async () => {
+        try {
+          const studentsRes = await axios.get(
+            `https://vcetplacement.onrender.com/api/student/getStudentInfo?year=${modalYear}`
+          );
+          const eligible = studentsRes.data.filter(student => {
+            const tenth = parseFloat(student.studentTenthPercentage) || 0;
+            const twelfth = parseFloat(student.studentTwelthPercentage);
+            const diploma = parseFloat(student.studentDiploma);
+            const cgpa = parseFloat(student.studentUGCGPA) || 0;
+            const arrear = parseFloat(student.studentCurrentArrears) || 0;
+            const hoa = parseFloat(student.studentHistoryOfArrears) || 0;
+
+            const twelfthValid = !isNaN(twelfth) && twelfth >= parseFloat(formData.twelfth);
+            const diplomaValid = !isNaN(diploma) && diploma >= parseFloat(formData.diploma);
+
+            return (
+              tenth >= parseFloat(formData.tenth) &&
+              (twelfthValid || diplomaValid) &&
+              cgpa >= parseFloat(formData.cgpa) &&
+              arrear <= parseFloat(formData.currentArrears) &&
+              hoa <= parseFloat(formData.historyofArrears)
+            );
+          });
+          setEligibleStudents(eligible);
+          setSelectedStudents([]); // Reset selection
+        } catch (error) {
+          console.error("Error fetching students:", error);
+        }
+      };
+      fetchEligibleStudents();
+    }
+  }, [modalYear, showStudentSelect, formData]);
+
+  const filteredEligibleStudents = eligibleStudents.filter(student =>
+    student.studentName.toLowerCase().includes(studentSearch.toLowerCase())
+  );
 
   const calculateFinalStatus = (roundData, totalRounds) => {
     if (!roundData) return "rejected";
@@ -644,37 +688,59 @@ const ManageCompanies = () => {
           </div>
 
           {/* Navigation */}
-          <div className="admin-navbar">
-            <div className="batch-info"  onClick={() => navigate("/AdminDashboard")} style={{ cursor: "pointer" }}>
-              <FaBuilding className="admin-nav-icon" />
-              <span className="batch-label">
-                {year ? `Batch ${year - 4}-${year}` : "Loading Batch..."}
-              </span>
-            </div>
-            {!showStudentPopup && (
-              <button
-                className="admin-nav-button add-company"
-                onClick={() => setShowForm(true)}
+          <div className="admin-navbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div className="batch-info" onClick={() => navigate("/AdminDashboard")} style={{ cursor: "pointer" }}>
+                <FaBuilding className="admin-nav-icon" />
+                <span className="batch-label">
+                  {year ? `Batch ${year - 4}-${year}` : "Loading Batch..."}
+                </span>
+              </div>
+              {!showStudentPopup && (
+                <>
+                  <div className="admin-search-container" style={{ display: 'flex', alignItems: 'center' }}>
+                    <FaSearch className="admin-search-icon" />
+                    <input
+                      type="text"
+                      placeholder="Search companies"
+                      value={companySearchQuery}
+                      onChange={(e) => setCompanySearchQuery(e.target.value)}
+                      style={{
+                        padding: '0.8rem 2.5rem 0.8rem 2rem',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        fontSize: '0.875rem',
+                        fontWeight: '600',
+                        width: '210px',
+                        transition: 'all 0.3s ease'
+                      }}
+                    />
+                  </div>
+                  <button
+                    className="admin-nav-button add-company"
+                    onClick={() => setShowForm(true)}
+                  >
+                    <FaPlus className="admin-nav-icon" />
+                    Add Company
+                  </button>
+                </>
+              )}
+              <Link
+                to="/admin/students"
+                className="admin-nav-button manage-students"
               >
-                <FaPlus className="admin-nav-icon" />
-                Add Company
+                <FaUsers className="admin-nav-icon" />
+                Manage Students
+              </Link>
+              {/* New Round Insights button near Logout as requested */}
+              <button
+                className="admin-nav-button round-insights"
+                onClick={() => setShowRoundInsights(true)}
+                title="Round Insights"
+              >
+                Round Insights
               </button>
-            )}
-            <Link
-              to="/admin/students"
-              className="admin-nav-button manage-students"
-            >
-              <FaUsers className="admin-nav-icon" />
-              Manage Students
-            </Link>
-            {/* New Round Insights button near Logout as requested */}
-            <button
-              className="admin-nav-button round-insights"
-              onClick={() => setShowRoundInsights(true)}
-              title="Round Insights"
-            >
-              Round Insights
-            </button>
+            </div>
             <button className="admin-nav-button logout" onClick={handleLogout}>
               <FaSignOutAlt className="admin-nav-icon" />
               Logout
@@ -693,14 +759,18 @@ const ManageCompanies = () => {
                 </div>
               ) : (
                 <div className="admin-companies-grid">
-                  {companies.map((company) => (
-                    <CompanyCard
-                      key={company._id}
-                      company={company}
-                      handleCompanyClick={handleCompanyClick}
-                      handleDeleteCompany={handleDeleteCompany}
-                    />
-                  ))}
+                  {companies
+                    .filter(company =>
+                      company.name.toLowerCase().includes(companySearchQuery.toLowerCase())
+                    )
+                    .map((company) => (
+                      <CompanyCard
+                        key={company._id}
+                        company={company}
+                        handleCompanyClick={handleCompanyClick}
+                        handleDeleteCompany={handleDeleteCompany}
+                      />
+                    ))}
                 </div>
               )}
             </div>
@@ -1116,7 +1186,7 @@ const ManageCompanies = () => {
               </div>
             </div>
             <div className="admin-students-table-container">
-              <table className="admin-students-table">
+              <table className="admin-students-table" style={{ margin: '0 auto' }}>
                 <thead>
                   <tr>
                     <th>Reg. No.</th>
@@ -1417,120 +1487,136 @@ const ManageCompanies = () => {
       {showStudentSelect && (
         <div className="admin-modal-overlay">
           <div className="admin-modal-content">
-            <div className="student-selection-header flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-800">Students</h2>
-              <div className="student-selection-controls">
-                <div className="select-all-container flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="selectAll"
-                    onChange={(e) => {
-                      const newSelected = e.target.checked ? eligibleStudents.map(s => s._id) : [];
-                      setSelectedStudents(newSelected);
-                    }}
-                    className="w-4 h-4 accent-indigo-500 cursor-pointer"
-                  />
-                  <label htmlFor="selectAll" className="text-md font-medium text-gray-700 cursor-pointer">Select All ({selectedStudents.length})</label>
-                </div>
-              </div>
+            <div className="admin-modal-header">
+              <h2>Students</h2>
+              <button className="admin-modal-close" onClick={() => setShowStudentSelect(false)}>
+                <FaTimes />
+              </button>
             </div>
-           
-            <table className="min-w-full border border-gray-200 rounded-xl shadow-md overflow-hidden">
-              <thead className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white">
-                <tr>
-                  <th className="px-6 py-3 text-left text-sm font-semibold tracking-wide uppercase">Select</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold tracking-wide uppercase">Register Number</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold tracking-wide uppercase">Name</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold tracking-wide uppercase">10</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold tracking-wide uppercase">12</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold tracking-wide uppercase">Diploma</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold tracking-wide uppercase">CGPA</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {eligibleStudents.map((student, index) => (
-                  <tr
-                    key={student._id}
-                    className={`transition-colors duration-200 ${
-                      index % 2 === 0 ? "bg-white hover:bg-indigo-50" : "bg-gray-50 hover:bg-purple-50"
-                    }`}
-                  >
-                    <td className="px-6 py-4">
-                      <input
-                        type="checkbox"
-                        checked={selectedStudents.includes(student._id)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedStudents([...selectedStudents, student._id]);
-                          } else {
-                            setSelectedStudents(
-                              selectedStudents.filter((id) => id !== student._id)
-                            );
+            <div className="admin-form-actions" style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <input
+                  type="checkbox"
+                  id="selectAll"
+                  style={{ accentColor: 'blue' }}
+                  onChange={(e) => {
+                    const newSelected = e.target.checked ? eligibleStudents.map(s => s._id) : [];
+                    setSelectedStudents(newSelected);
+                  }}
+                />
+                <label htmlFor="selectAll">Select All ({selectedStudents.length})</label>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div className="admin-search-container" style={{ marginRight: '1rem' }}>
+                  <FaSearch className="admin-search-icon" />
+                  <input
+                    type="text"
+                    placeholder="Search students by name..."
+                    value={studentSearch}
+                    onChange={(e) => setStudentSearch(e.target.value)}
+                    style={{
+                      padding: '0.5rem 2.5rem 0.5rem 2rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.375rem',
+                      fontSize: '0.875rem',
+                      width: '200px'
+                    }}
+                  />
+                </div>
+                <button
+                  className="admin-submit-button"
+                  onClick={async () => {
+                    try {
+                      const companyRes = await axios.post(
+                        `https://vcetplacement.onrender.com/api/company/addcompany?year=${year}`,
+                        formData
+                      );
+
+                      console.log("Company added successfully:", companyRes.data);
+
+                      setReloadTrigger(prev => !prev);
+                      setShowStudentSelect(false);
+                      setShowForm(false);
+
+                      const companyId = companyRes.data._id;
+                      console.log(selectedStudents);
+                      try{
+                        const shortlistRes = await axios.post(
+                          "https://vcetplacement.onrender.com/api/shortlist/addshortlist",
+                          {
+                            year: year,
+                            companyId: companyId,
+                            studentIds: selectedStudents
                           }
-                        }}
-                        className="w-5 h-5 accent-purple-500 cursor-pointer"
-                      />
-                    </td>
-                    <td className="px-6 py-4 text-300 font-medium text-gray-700">{student.studentRegisterNumber}</td>
-                    <td className="px-6 py-4 text-300 font-medium text-gray-700">{student.studentName}</td>
-                    <td className="px-6 py-4 text-300 font-medium text-gray-700">{student.studentTenthPercentage}</td>
-                    <td className="px-6 py-4 text-300 font-medium text-gray-700">{student.studentTwelthPercentage}</td>
-                    <td className="px-6 py-4 text-300 font-medium text-gray-700">{student.studentDiploma}</td>
-                    <td className="px-6 py-4 text-300 font-medium text-gray-700">{student.studentUGCGPA}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                        );
+                        setSelectedStudents(null);
+                        console.log("Shortlist added:", shortlistRes.data);
+                      }catch (error) {
+                        console.error("Shortlist Error: " , error);
+                      }
 
-            <div className="admin-form-actions" style={{ padding: '1rem', borderTop: '1px solid #e5e7eb' }}>
-              <button
-                className="admin-submit-button"
-                onClick={async () => {
-                  try {
-                    const companyRes = await axios.post(
-                      `https://vcetplacement.onrender.com/api/company/addcompany?year=${year}`,
-                      formData
-                    );
-
-                    console.log("Company added successfully:", companyRes.data);
-
-                    setReloadTrigger(prev => !prev);
+                    } catch (error) {
+                      console.error("Error:", error);
+                    }
+                  }}
+                >
+                  Add Company
+                </button>
+                <button
+                  className="admin-cancel-button"
+                  onClick={() => {
                     setShowStudentSelect(false);
                     setShowForm(false);
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
 
-                    const companyId = companyRes.data._id;
-                    console.log(selectedStudents);
-                    try{
-                      const shortlistRes = await axios.post(
-                        "https://vcetplacement.onrender.com/api/shortlist/addshortlist",
-                        {
-                          year: year,
-                          companyId: companyId,
-                          studentIds: selectedStudents
-                        }
-                      );
-                      setSelectedStudents(null);
-                      console.log("Shortlist added:", shortlistRes.data);
-                    }catch (error) {
-                      console.error("Shortlist Error: " , error);
-                    }
 
-                  } catch (error) {
-                    console.error("Error:", error);
-                  }
-                }}
-              >
-                Add Company
-              </button>
-              <button
-                className="admin-cancel-button"
-                onClick={() => {
-                  setShowStudentSelect(false);
-                  setShowForm(false);
-                }}
-              >
-                Cancel
-              </button>
+            <div className="admin-students-table-container">
+              <table className="admin-students-table">
+                <thead>
+                  <tr>
+                    <th style={{ textAlign: 'center' }}>Select</th>
+                    <th style={{ textAlign: 'center', width: '120px' }}>Register No.</th>
+                    <th style={{ textAlign: 'center', width: '200px' }}>Name</th>
+                    <th style={{ textAlign: 'center' }}>10th %</th>
+                    <th style={{ textAlign: 'center' }}>12th %</th>
+                    <th style={{ textAlign: 'center' }}>Diploma %</th>
+                    <th style={{ textAlign: 'center' }}>CGPA</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredEligibleStudents.map((student) => (
+                    <tr key={student._id}>
+                      <td style={{ textAlign: 'center' }}>
+                        <input
+                          type="checkbox"
+                          style={{ accentColor: 'blue' }}
+                          checked={selectedStudents.includes(student._id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedStudents([...selectedStudents, student._id]);
+                            } else {
+                              setSelectedStudents(
+                                selectedStudents.filter((id) => id !== student._id)
+                              );
+                            }
+                          }}
+                        />
+                      </td>
+                      <td style={{ textAlign: 'center' }}>{student.studentRegisterNumber}</td>
+                      <td style={{ textAlign: 'left' }}>{student.studentName}</td>
+                      <td style={{ textAlign: 'center' }}>{student.studentTenthPercentage}</td>
+                      <td style={{ textAlign: 'center' }}>{student.studentTwelthPercentage}</td>
+                      <td style={{ textAlign: 'center' }}>{student.studentDiploma}</td>
+                      <td style={{ textAlign: 'center' }}>{student.studentUGCGPA}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
