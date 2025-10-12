@@ -79,9 +79,19 @@
 
 .analytics-header {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
   margin-bottom: 1.5rem;
   padding: 0 1rem;
+  gap: 1rem;
+}
+
+.analytics-header h2 {
+  flex: 1;
+  text-align: center;
+  color: #1a202c;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
 }
 
 .view-analytics-btn {
@@ -99,6 +109,28 @@
 .view-analytics-btn:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+}
+
+.back-arrow-btn {
+  background: rgba(255, 255, 255, 0.9);
+  color: #4b5563;
+  padding: 0.5rem;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  cursor: pointer;
+  font-size: 1.2rem;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+}
+
+.back-arrow-btn:hover {
+  background: rgba(255, 255, 255, 1);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 /* Make sure charts are visible with proper spacing */

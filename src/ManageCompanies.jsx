@@ -51,6 +51,8 @@ const ManageCompanies = () => {
   const [showStudentPopup, setShowStudentPopup] = useState(false);
   const [showRoundInsights, setShowRoundInsights] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
+  const [showCompanyAnalytics, setShowCompanyAnalytics] = useState(false);
+  const [selectedAnalyticsCompany, setSelectedAnalyticsCompany] = useState(null);
   const [students, setStudents] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -324,12 +326,11 @@ const ManageCompanies = () => {
     setTotalRound5Cleared(rounds[5].cleared);
     setCompaniesWithRound1(rounds[1].companies);
     
-    // Calculate overall average success rate
-    const roundsWithStudents = Object.values(rounds).filter(r => r.attended > 0);
-    const avgSuccess = roundsWithStudents.length > 0
-      ? roundsWithStudents.reduce((sum, r) => sum + (r.cleared / r.attended * 100), 0) / roundsWithStudents.length
-      : 0;
-    setAverageSuccessRate(avgSuccess);
+    // Calculate overall success rate across all rounds and companies
+    const totalSelected = Object.values(rounds).reduce((sum, r) => sum + r.cleared, 0);
+    const totalAttended = Object.values(rounds).reduce((sum, r) => sum + r.attended, 0);
+    const overallSuccessRate = totalAttended > 0 ? (totalSelected / totalAttended) * 100 : 0;
+    setAverageSuccessRate(overallSuccessRate);
   }, [companies, companyRoundStats]);
 
   const handleDeleteCompany = async(companyId) => {
@@ -778,20 +779,20 @@ const ManageCompanies = () => {
           <div className="admin-modal-content">
             <div className="admin-modal-header">
               <h2>Round Insights</h2>
-              <button className="admin-modal-close" onClick={() => setShowRoundInsights(false)}>
-                <FaTimes />
-              </button>
-            </div>
-
-            <div style={{ padding: '1rem' }}>
-              <div className="analytics-header">
-                <button 
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <button
                   className="view-analytics-btn"
                   onClick={() => setShowAnalytics(prevState => !prevState)}
                 >
                   {showAnalytics ? 'Show Companies' : 'View Analytics'}
                 </button>
+                <button className="admin-modal-close" onClick={() => setShowRoundInsights(false)}>
+                  <FaTimes />
+                </button>
               </div>
+            </div>
+
+            <div style={{ padding: '1rem' }}>
 
               {showAnalytics ? (
                 <div className="analytics-container">
@@ -976,6 +977,177 @@ const ManageCompanies = () => {
                     </div>
                   </div>
                 </div>
+              ) : showCompanyAnalytics && selectedAnalyticsCompany ? (
+                <div className="analytics-container">
+                  <div className="analytics-header">
+                    <button
+                      className="back-arrow-btn"
+                      onClick={() => setShowCompanyAnalytics(false)}
+                      title="Back to Companies"
+                    >
+                      <FaArrowLeft />
+                    </button>
+                    <h2>{selectedAnalyticsCompany.name.toUpperCase()} Analytics</h2>
+                  </div>
+                  <div className="analytics-card">
+                    <h3>{selectedAnalyticsCompany.name.toUpperCase()} - Round-wise Performance</h3>
+                    <div className="analytics-stats">
+                      <div className="chart-container">
+                        <Bar
+                          data={{
+                            labels: Array.from({ length: selectedAnalyticsCompany.rounds }, (_, i) => `Round ${i + 1}`),
+                            datasets: [
+                              {
+                                label: 'Students Attended',
+                                data: Array.from({ length: selectedAnalyticsCompany.rounds }, (_, i) => {
+                                  const stats = companyRoundStats[selectedAnalyticsCompany._id];
+                                  return stats?.rounds?.[i + 1]?.attended || 0;
+                                }),
+                                backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                                borderColor: 'rgba(54, 162, 235, 1)',
+                                borderWidth: 1,
+                                order: 2
+                              },
+                              {
+                                label: 'Students Selected',
+                                data: Array.from({ length: selectedAnalyticsCompany.rounds }, (_, i) => {
+                                  const stats = companyRoundStats[selectedAnalyticsCompany._id];
+                                  return stats?.rounds?.[i + 1]?.selected || 0;
+                                }),
+                                backgroundColor: 'rgba(75, 192, 192, 0.5)',
+                                borderColor: 'rgba(75, 192, 192, 1)',
+                                borderWidth: 1,
+                                order: 1
+                              },
+                              {
+                                label: 'Students Rejected',
+                                data: Array.from({ length: selectedAnalyticsCompany.rounds }, (_, i) => {
+                                  const stats = companyRoundStats[selectedAnalyticsCompany._id];
+                                  const roundData = stats?.rounds?.[i + 1];
+                                  return (roundData?.attended || 0) - (roundData?.selected || 0);
+                                }),
+                                backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                                borderColor: 'rgba(255, 99, 132, 1)',
+                                borderWidth: 1,
+                                order: 3
+                              },
+                            ],
+                          }}
+                          options={{
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                              y: {
+                                beginAtZero: true,
+                                ticks: {
+                                  stepSize: 1,
+                                  color: '#333'
+                                }
+                              },
+                              x: {
+                                ticks: {
+                                  color: '#333'
+                                }
+                              }
+                            },
+                            plugins: {
+                              legend: {
+                                position: 'top',
+                                labels: {
+                                  color: '#333'
+                                }
+                              },
+                              title: {
+                                display: true,
+                                text: `${selectedAnalyticsCompany.name} Round-wise Performance`,
+                                color: '#333'
+                              }
+                            }
+                          }}
+                        />
+                      </div>
+                      <div className="chart-container">
+                        <Bar
+                          data={{
+                            labels: Array.from({ length: selectedAnalyticsCompany.rounds }, (_, i) => `Round ${i + 1}`),
+                            datasets: [{
+                              label: 'Success Rate (%)',
+                              data: Array.from({ length: selectedAnalyticsCompany.rounds }, (_, i) => {
+                                const stats = companyRoundStats[selectedAnalyticsCompany._id];
+                                const roundData = stats?.rounds?.[i + 1];
+                                const attended = roundData?.attended || 0;
+                                const selected = roundData?.selected || 0;
+                                return attended > 0 ? (selected / attended) * 100 : 0;
+                              }),
+                              backgroundColor: 'rgba(255, 159, 64, 0.5)',
+                              borderColor: 'rgba(255, 159, 64, 1)',
+                              borderWidth: 1,
+                            }]
+                          }}
+                          options={{
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                              y: {
+                                beginAtZero: true,
+                                max: 100,
+                                ticks: {
+                                  callback: value => value + '%',
+                                  color: '#333'
+                                }
+                              },
+                              x: {
+                                ticks: {
+                                  color: '#333'
+                                }
+                              }
+                            },
+                            plugins: {
+                              legend: {
+                                position: 'top',
+                                labels: {
+                                  color: '#333'
+                                }
+                              },
+                              title: {
+                                display: true,
+                                text: `${selectedAnalyticsCompany.name} Success Rate`,
+                                color: '#333'
+                              }
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="analytics-card">
+                    <h3>Company Summary</h3>
+                    <div className="analytics-stats">
+                      <div className="stat-item">
+                        <p className="stat-label">Position</p>
+                        <p className="stat-value">{selectedAnalyticsCompany.position}</p>
+                      </div>
+                      <div className="stat-item">
+                        <p className="stat-label">Interview Date</p>
+                        <p className="stat-value">{selectedAnalyticsCompany.interviewDate}</p>
+                      </div>
+                      <div className="stat-item">
+                        <p className="stat-label">Total Students</p>
+                        <p className="stat-value">{companyRoundStats[selectedAnalyticsCompany._id]?.totalStudents || 0}</p>
+                      </div>
+                      <div className="stat-item">
+                        <p className="stat-label">Final Selections</p>
+                        <p className="stat-value">
+                          {(() => {
+                            const stats = companyRoundStats[selectedAnalyticsCompany._id];
+                            const lastRound = stats?.rounds?.[selectedAnalyticsCompany.rounds];
+                            return lastRound?.selected || 0;
+                          })()}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               ) : (
                 <div className="admin-companies-grid">
                   {companies.map((company) => {
@@ -985,6 +1157,17 @@ const ManageCompanies = () => {
                       <div className="admin-company-header">
                         <h3 className="admin-company-black">{company.name.toUpperCase()}</h3>
                         <div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedAnalyticsCompany(company);
+                              setShowCompanyAnalytics(true);
+                            }}
+                            title="View Company Analytics"
+                            style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '6px' }}
+                          >
+                            <FaEye style={{ width: '18px', height: '18px', color: '#3b82f6' }} />
+                          </button>
                           <button
                             onClick={async (e) => {
                               e.stopPropagation();
