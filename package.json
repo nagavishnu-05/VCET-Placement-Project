@@ -14,6 +14,7 @@
     "@tailwindcss/vite": "^4.1.4",
     "axios": "^1.10.0",
     "chart.js": "^4.5.0",
+    "chartjs-plugin-datalabels": "^2.2.0",
     "next": "^15.3.2",
     "placement": "file:",
     "react": "^19.1.0",

@@ -18,6 +18,7 @@ import {
   FaFileExcel
 } from "react-icons/fa";
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
+import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { Bar } from 'react-chartjs-2';
 import CompanyCard from "./CompanyCard";
 import Vcet from "./assets/VCET Logo.jpg";
@@ -32,7 +33,8 @@ ChartJS.register(
   BarElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  ChartDataLabels
 );
 
 const ManageCompanies = () => {
@@ -877,6 +879,15 @@ const ManageCompanies = () => {
                                 display: true,
                                 text: 'Round-wise Student Performance',
                                 color: '#333'
+                              },
+                              datalabels: {
+                                display: true,
+                                color: '#333',
+                                font: {
+                                  weight: 'bold',
+                                  size: 12
+                                },
+                                formatter: (value) => value > 0 ? value : ''
                               }
                             }
                           }}
@@ -931,6 +942,15 @@ const ManageCompanies = () => {
                                 display: true,
                                 text: 'Round-wise Success Rate',
                                 color: '#333'
+                              },
+                              datalabels: {
+                                display: true,
+                                color: '#333',
+                                font: {
+                                  weight: 'bold',
+                                  size: 12
+                                },
+                                formatter: (value) => value > 0 ? value.toFixed(1) + '%' : ''
                               }
                             }
                           }}
@@ -1061,6 +1081,15 @@ const ManageCompanies = () => {
                                 display: true,
                                 text: `${selectedAnalyticsCompany.name} Round-wise Performance`,
                                 color: '#333'
+                              },
+                              datalabels: {
+                                display: true,
+                                color: '#333',
+                                font: {
+                                  weight: 'bold',
+                                  size: 12
+                                },
+                                formatter: (value) => value > 0 ? value : ''
                               }
                             }
                           }}
@@ -1113,6 +1142,15 @@ const ManageCompanies = () => {
                                 display: true,
                                 text: `${selectedAnalyticsCompany.name} Success Rate`,
                                 color: '#333'
+                              },
+                              datalabels: {
+                                display: true,
+                                color: '#333',
+                                font: {
+                                  weight: 'bold',
+                                  size: 12
+                                },
+                                formatter: (value) => value > 0 ? value.toFixed(1) + '%' : ''
                               }
                             }
                           }}
