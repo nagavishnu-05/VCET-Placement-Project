@@ -5,18 +5,17 @@ import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import * as XLSX from "xlsx";
-import { 
-  FaBuilding, 
-  FaSignOutAlt, 
-  FaPlus, 
-  FaTimes, 
-  FaUsers, 
-  FaTrash, 
-  FaArrowLeft, 
-  FaSearch, 
-  FaEdit, 
+import {
+  FaBuilding,
+  FaSignOutAlt,
+  FaPlus,
+  FaTimes,
+  FaUsers,
+  FaArrowLeft,
+  FaSearch,
+  FaEdit,
   FaEye,
-  FaFileExcel 
+  FaFileExcel
 } from "react-icons/fa";
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
@@ -647,11 +646,6 @@ const ManageCompanies = () => {
     setSelectedCompany(null);
     setSearchQuery("");
   };
-  const handleDeleteStudent = (studentId) => {
-    setStudents((prevStudents) =>
-      prevStudents.filter((student) => student.id !== studentId)
-    );
-  };
   const filteredStudents = students.filter((student) =>
     student.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -1195,7 +1189,6 @@ const ManageCompanies = () => {
                       <th key={i}>Round {i + 1}</th>
                     ))}
                     <th>Final Status</th>
-                    <th>Remove</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1273,14 +1266,6 @@ const ManageCompanies = () => {
                             <span className={`round-status ${finalStatus}`}>
                               {finalStatus}
                             </span>
-                          </td>
-                          <td>
-                            <button
-                              className="admin-action-btn delete"
-                              onClick={() => handleDeleteStudent(student.id)}
-                            >
-                              <FaTrash />
-                            </button>
                           </td>
                         </tr>
                       );
