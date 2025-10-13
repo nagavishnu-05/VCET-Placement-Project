@@ -373,11 +373,27 @@ const ManageCompanies = () => {
     }
   };
 
+  // Function to get greeting based on current time
+  const getGreeting = () => {
+    const now = new Date();
+    const hour = now.getHours();
+
+    if (hour >= 5 && hour < 12) {
+      return "Good morning all";
+    } else if (hour >= 12 && hour < 17) {
+      return "Good afternoon all";
+    } else {
+      return "Good evening all";
+    }
+  };
+
   // Function to generate WhatsApp message for placed students
   const generatePlacedStudentsMessage = () => {
     try {
       const studentRoundsData = localStorage.getItem("studentRounds");
-      if (!studentRoundsData) return "Good evening all\n\nSo far placed students list\n\nNo placed students yet.";
+      const greeting = getGreeting();
+
+      if (!studentRoundsData) return `${greeting}\n\nSo far placed students list\n\nNo placed students yet.`;
 
       const studentRounds = JSON.parse(studentRoundsData);
       const placedStudentsList = [];
@@ -400,7 +416,7 @@ const ManageCompanies = () => {
       });
 
       if (placedStudentsList.length === 0) {
-        return "Good evening all\n\nSo far placed students list\n\nNo placed students yet.";
+        return `${greeting}\n\nSo far placed students list\n\nNo placed students yet.`;
       }
 
       // Calculate batch years from year (assuming year is end year)
@@ -415,7 +431,7 @@ const ManageCompanies = () => {
       const yetToPlace = placementEligible - placedCount;
       const placementPercentage = ((placedCount / placementEligible) * 100).toFixed(2);
 
-      let message = "Good evening all\n\nSo far placed students list\n\n";
+      let message = `${greeting}\n\nSo far placed students list\n\n`;
       placedStudentsList.forEach((student, index) => {
         message += `${index + 1}.${student}\n`;
       });
@@ -432,7 +448,7 @@ const ManageCompanies = () => {
       return message;
     } catch (error) {
       console.error("Error generating WhatsApp message:", error);
-      return "Good evening all\n\nSo far placed students list\n\nError generating list.";
+      return `${getGreeting()}\n\nSo far placed students list\n\nError generating list.`;
     }
   };
 
