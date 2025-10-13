@@ -335,14 +335,21 @@ const ManageCompanies = () => {
     setAverageSuccessRate(overallSuccessRate);
   }, [companies, companyRoundStats]);
 
-  const handleDeleteCompany = async(companyId) => {
-    try {
-      await axios.delete(`https://vcetplacement.onrender.com/api/company/deletecompany/${companyId}?year=${year}`);
-      setReloadTrigger((prev) => !prev);
-    } catch (error) {
-      console.error("Failed to delete company:", error);
-    }
-  };
+  const handleDeleteCompany = async (companyId) => {
+  try {
+    const shortlistRes = await axios.delete(
+      `https://vcetplacement.onrender.com/api/shortlist/deleteshortlist/${year}/${companyId}`
+    );
+    console.log("Shortlist delete:", shortlistRes.data);
+    const companyRes = await axios.delete(
+      `https://vcetplacement.onrender.com/api/company/deletecompany/${companyId}?year=${year}`
+    );
+    console.log("Company delete:", companyRes.data);
+    setReloadTrigger((prev) => !prev);
+  } catch (error) {
+    console.error("Failed to delete company:", error.response?.data || error.message);
+  }
+ };
 
   const [searchQuery, setSearchQuery] = useState("");
   const [companySearchQuery, setCompanySearchQuery] = useState("");
