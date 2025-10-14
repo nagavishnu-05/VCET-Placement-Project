@@ -9,6 +9,8 @@ import {
   FaSearch
 } from "react-icons/fa";
 import { Link, useLocation } from "react-router-dom";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import Vcet from "./assets/VCET Logo.jpg";
 import CSE from "./assets/CSE LOGO.jpg";
 import "./styles/ManageStudents.css";
@@ -142,9 +144,34 @@ const ManageStudents = () => {
       //   year
       // });
       
-      console.log(`Student ${studentId} selected offer from company ${companyId}`);
+      const company = companies.find(c => c._id === companyId);
+      const companyName = company ? company.name : "the company";
+
+      toast("Offer Updated", {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        type: "success",
+      });
+
+      // Close the popup like in ManageCompanies after update
+      setShowRoundDetails(false);
+
+      console.log(`Student ${studentId} selected offer from company ${companyId} (${companyName})`);
     } catch (error) {
       console.error("Error saving offer selection:", error);
+      toast("Failed to save offer selection.", {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        type: "error",
+      });
     }
   };
 
@@ -280,6 +307,7 @@ const ManageStudents = () => {
 
         {/* Content Area */}
         <div className="admin-dashboard-content">
+          <ToastContainer />
           <div className="manage-students-header">
             <h2 className="manage-students-title">Students</h2>
             <div className="student-header-right">
