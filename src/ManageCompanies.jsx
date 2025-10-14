@@ -76,19 +76,13 @@ const ManageCompanies = () => {
   const [studentSearch, setStudentSearch] = useState("");
   const [companyRoundStats, setCompanyRoundStats] = useState({});
   // Analytics state variables
-  const [totalRound1Attended, setTotalRound1Attended] = useState(0);
-  const [totalRound1Cleared, setTotalRound1Cleared] = useState(0);
-  const [totalRound2Attended, setTotalRound2Attended] = useState(0);
-  const [totalRound2Cleared, setTotalRound2Cleared] = useState(0);
-  const [totalRound3Attended, setTotalRound3Attended] = useState(0);
-  const [totalRound3Cleared, setTotalRound3Cleared] = useState(0);
-  const [totalRound4Attended, setTotalRound4Attended] = useState(0);
-  const [totalRound4Cleared, setTotalRound4Cleared] = useState(0);
-  const [totalRound5Attended, setTotalRound5Attended] = useState(0);
-  const [totalRound5Cleared, setTotalRound5Cleared] = useState(0);
+  const [totalRoundAttended, setTotalRoundAttended] = useState(Array(10).fill(0));
+  const [totalRoundCleared, setTotalRoundCleared] = useState(Array(10).fill(0));
+  const [totalRoundCompanies, setTotalRoundCompanies] = useState(Array(10).fill(0));
   const [companiesWithRound1, setCompaniesWithRound1] = useState(0);
   const [averageSuccessRate, setAverageSuccessRate] = useState(0);
   const [totalPlacedStudents, setTotalPlacedStudents] = useState(0);
+  const [maxRounds, setMaxRounds] = useState(5);
   // Per-card expanded state will be managed inside each CompanyCard to avoid
   // shared state issues where toggling one card could affect others.
 
@@ -274,18 +268,27 @@ const ManageCompanies = () => {
         const round1Data = stats.rounds['1'];
         const attended = round1Data.attended || 0;
         const selected = round1Data.selected || 0;
-        
+
         totalAttended += attended;
         totalCleared += selected;
-        
+
         if (attended > 0) {
           totalSuccessRate += (selected / attended) * 100;
         }
       }
     });
 
-    setTotalRound1Attended(totalAttended);
-    setTotalRound1Cleared(totalCleared);
+    // Update the first element of the arrays
+    setTotalRoundAttended(prev => {
+      const newArr = [...prev];
+      newArr[0] = totalAttended;
+      return newArr;
+    });
+    setTotalRoundCleared(prev => {
+      const newArr = [...prev];
+      newArr[0] = totalCleared;
+      return newArr;
+    });
     setCompaniesWithRound1(companiesCount);
     setAverageSuccessRate(companiesCount > 0 ? totalSuccessRate / companiesCount : 0);
   }, [companies, companyRoundStats]);
@@ -294,45 +297,35 @@ const ManageCompanies = () => {
   useEffect(() => {
     if (!companies.length || !companyRoundStats) return;
 
-    let rounds = {
-      1: { attended: 0, cleared: 0, companies: 0 },
-      2: { attended: 0, cleared: 0, companies: 0 },
-      3: { attended: 0, cleared: 0, companies: 0 },
-      4: { attended: 0, cleared: 0, companies: 0 },
-      5: { attended: 0, cleared: 0, companies: 0 }
-    };
+    const maxRoundsValue = Math.max(...companies.map(c => c.rounds || 0));
+    setMaxRounds(maxRoundsValue);
+
+    const rounds = Array.from({ length: maxRoundsValue }, () => ({ attended: 0, cleared: 0, companies: 0 }));
 
     companies.forEach(company => {
       const stats = companyRoundStats[company._id];
       if (stats?.rounds) {
-        // Process each round
-        for (let round = 1; round <= 5; round++) {
+        // Process each round up to the company's rounds
+        for (let round = 1; round <= company.rounds; round++) {
           const roundData = stats.rounds[round];
           if (roundData) {
-            rounds[round].attended += roundData.attended || 0;
-            rounds[round].cleared += roundData.selected || 0;
-            rounds[round].companies++;
+            rounds[round - 1].attended += roundData.attended || 0;
+            rounds[round - 1].cleared += roundData.selected || 0;
+            rounds[round - 1].companies++;
           }
         }
       }
     });
 
-    // Update state for all rounds
-    setTotalRound1Attended(rounds[1].attended);
-    setTotalRound1Cleared(rounds[1].cleared);
-    setTotalRound2Attended(rounds[2].attended);
-    setTotalRound2Cleared(rounds[2].cleared);
-    setTotalRound3Attended(rounds[3].attended);
-    setTotalRound3Cleared(rounds[3].cleared);
-    setTotalRound4Attended(rounds[4].attended);
-    setTotalRound4Cleared(rounds[4].cleared);
-    setTotalRound5Attended(rounds[5].attended);
-    setTotalRound5Cleared(rounds[5].cleared);
-    setCompaniesWithRound1(rounds[1].companies);
+    // Update state arrays
+    setTotalRoundAttended(rounds.map(r => r.attended));
+    setTotalRoundCleared(rounds.map(r => r.cleared));
+    setTotalRoundCompanies(rounds.map(r => r.companies));
+    setCompaniesWithRound1(rounds[0]?.companies || 0);
 
     // Calculate overall success rate across all rounds and companies
-    const totalSelected = Object.values(rounds).reduce((sum, r) => sum + r.cleared, 0);
-    const totalAttended = Object.values(rounds).reduce((sum, r) => sum + r.attended, 0);
+    const totalSelected = rounds.reduce((sum, r) => sum + r.cleared, 0);
+    const totalAttended = rounds.reduce((sum, r) => sum + r.attended, 0);
     const overallSuccessRate = totalAttended > 0 ? (totalSelected / totalAttended) * 100 : 0;
     setAverageSuccessRate(overallSuccessRate);
 
@@ -929,17 +922,11 @@ const ManageCompanies = () => {
                       <div className="chart-container">
                         <Bar
                           data={{
-                            labels: ['Round 1', 'Round 2', 'Round 3', 'Round 4', 'Round 5'],
+                            labels: Array.from({ length: maxRounds }, (_, i) => `Round ${i + 1}`),
                             datasets: [
                               {
                                 label: 'Students Attended',
-                                data: [
-                                  totalRound1Attended || 0,
-                                  totalRound2Attended || 0,
-                                  totalRound3Attended || 0,
-                                  totalRound4Attended || 0,
-                                  totalRound5Attended || 0
-                                ],
+                                data: totalRoundAttended.slice(0, maxRounds),
                                 backgroundColor: 'rgba(54, 162, 235, 0.5)',
                                 borderColor: 'rgba(54, 162, 235, 1)',
                                 borderWidth: 1,
@@ -947,13 +934,7 @@ const ManageCompanies = () => {
                               },
                               {
                                 label: 'Students Selected',
-                                data: [
-                                  totalRound1Cleared || 0,
-                                  totalRound2Cleared || 0,
-                                  totalRound3Cleared || 0,
-                                  totalRound4Cleared || 0,
-                                  totalRound5Cleared || 0
-                                ],
+                                data: totalRoundCleared.slice(0, maxRounds),
                                 backgroundColor: 'rgba(75, 192, 192, 0.5)',
                                 borderColor: 'rgba(75, 192, 192, 1)',
                                 borderWidth: 1,
@@ -961,13 +942,7 @@ const ManageCompanies = () => {
                               },
                               {
                                 label: 'Students Rejected',
-                                data: [
-                                  (totalRound1Attended || 0) - (totalRound1Cleared || 0),
-                                  (totalRound2Attended || 0) - (totalRound2Cleared || 0),
-                                  (totalRound3Attended || 0) - (totalRound3Cleared || 0),
-                                  (totalRound4Attended || 0) - (totalRound4Cleared || 0),
-                                  (totalRound5Attended || 0) - (totalRound5Cleared || 0)
-                                ],
+                                data: totalRoundAttended.slice(0, maxRounds).map((attended, i) => attended - totalRoundCleared[i]),
                                 backgroundColor: 'rgba(255, 99, 132, 0.5)',
                                 borderColor: 'rgba(255, 99, 132, 1)',
                                 borderWidth: 1,
@@ -1022,16 +997,10 @@ const ManageCompanies = () => {
                       <div className="chart-container">
                         <Bar
                           data={{
-                            labels: ['Round 1', 'Round 2', 'Round 3', 'Round 4', 'Round 5'],
+                            labels: Array.from({ length: maxRounds }, (_, i) => `Round ${i + 1}`),
                             datasets: [{
                               label: 'Success Rate (%)',
-                              data: [
-                                totalRound1Attended > 0 ? (totalRound1Cleared / totalRound1Attended) * 100 : 0,
-                                totalRound2Attended > 0 ? (totalRound2Cleared / totalRound2Attended) * 100 : 0,
-                                totalRound3Attended > 0 ? (totalRound3Cleared / totalRound3Attended) * 100 : 0,
-                                totalRound4Attended > 0 ? (totalRound4Cleared / totalRound4Attended) * 100 : 0,
-                                totalRound5Attended > 0 ? (totalRound5Cleared / totalRound5Attended) * 100 : 0,
-                              ],
+                              data: totalRoundAttended.slice(0, maxRounds).map((attended, i) => attended > 0 ? (totalRoundCleared[i] / attended) * 100 : 0),
                               backgroundColor: 'rgba(255, 159, 64, 0.5)',
                               borderColor: 'rgba(255, 159, 64, 1)',
                               borderWidth: 1,
