@@ -1998,4 +1998,4 @@ const ManageCompanies = () => {
   );
 };
 
-export default ManageCompanies; 
+export default ManageCompanies;

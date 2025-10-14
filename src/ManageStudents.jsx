@@ -108,7 +108,12 @@ const ManageStudents = () => {
 
     setSelectedStudent({ ...student, rounds: roundData });
     console.log(selectedStudent);
- 
+    const selectedList = getSelectedCompanies(roundData);
+    if (selectedList.length === 1) {
+      const onlyCompanyId = selectedList[0].companyId;
+      setSelectedOffers(prev => ({ ...prev, [student._id]: onlyCompanyId }));
+    }
+
     setShowRoundDetails(true);
   };
 
