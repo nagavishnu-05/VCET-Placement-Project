@@ -177,6 +177,51 @@
     font-size: 1.5rem;
 }
 
+.student-rounds-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.offer-selection-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #f8f9fa;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.offer-label {
+    font-weight: 600;
+    color: #495057;
+    font-size: 0.95rem;
+    white-space: nowrap;
+}
+
+.offer-dropdown {
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    background: white;
+    color: #495057;
+    font-size: 0.95rem;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.2s ease;
+    min-width: 200px;
+}
+
+.offer-dropdown:hover {
+    border-color: #4a90e2;
+}
+
+.offer-dropdown:focus {
+    border-color: #4a90e2;
+    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+}
+
 .student-rounds-close {
     background: none;
     border: none;
@@ -279,6 +324,32 @@
     .student-rounds-content {
         width: 95%;
         margin: 10px;
+    }
+
+    .student-rounds-header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: flex-start;
+    }
+
+    .student-rounds-header h2 {
+        font-size: 1.2rem;
+    }
+
+    .student-rounds-header-actions {
+        width: 100%;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .offer-selection-container {
+        width: 100%;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .offer-dropdown {
+        width: 100%;
     }
 }
 

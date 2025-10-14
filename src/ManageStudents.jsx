@@ -32,6 +32,7 @@ const ManageStudents = () => {
   const [studentInformationsDetail, setStudentInformationDetail] = useState([]);
   const [studentRounds, setStudentRounds] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedOffers, setSelectedOffers] = useState({});
 
   useEffect(() => {
     const fetchData = async () => {
@@ -103,10 +104,48 @@ const ManageStudents = () => {
     const found = studentRounds.find(s => s.studentId === student._id);
     const roundData = found?.rounds || {};
 
-  setSelectedStudent({ ...student, rounds: roundData });
-  console.log(selectedStudent);
+    setSelectedStudent({ ...student, rounds: roundData });
+    console.log(selectedStudent);
  
-  setShowRoundDetails(true);
+    setShowRoundDetails(true);
+  };
+
+  const getSelectedCompanies = (rounds) => {
+    if (!rounds) return [];
+    
+    return Object.entries(rounds)
+      .map(([companyId, roundSet]) => {
+        const company = companies.find((c) => c._id === companyId);
+        if (!company) return null;
+        
+        const finalStatus = calculateFinalStatus({ [companyId]: roundSet }, company);
+        if (finalStatus === "Selected") {
+          return { companyId, companyName: company.name };
+        }
+        return null;
+      })
+      .filter(Boolean);
+  };
+
+  const handleOfferSelection = async (studentId, companyId) => {
+    try {
+      // Update local state
+      setSelectedOffers(prev => ({
+        ...prev,
+        [studentId]: companyId
+      }));
+
+      // Optional: Save to backend
+      // await axios.post(`https://vcetplacement.onrender.com/api/student/selectOffer`, {
+      //   studentId,
+      //   companyId,
+      //   year
+      // });
+      
+      console.log(`Student ${studentId} selected offer from company ${companyId}`);
+    } catch (error) {
+      console.error("Error saving offer selection:", error);
+    }
   };
 
   const calculateFinalStatus = (rounds, company) => {
@@ -125,7 +164,7 @@ const ManageStudents = () => {
 
   const handleExportStudentRounds = (student) => {
     const found = studentRounds.find(s => s.studentId === student._id);
-  const rounds = found?.rounds || {};
+    const rounds = found?.rounds || {};
     const wb = XLSX.utils.book_new();
 
     const exportData = [
@@ -166,7 +205,7 @@ const ManageStudents = () => {
       };
 
       const found = studentRounds.find(s => s.studentId === student._id);
-const rounds = found?.rounds || {};
+      const rounds = found?.rounds || {};
 
       companies.forEach((company) => {
         const companyRounds = rounds[company._id] || {};
@@ -317,12 +356,32 @@ const rounds = found?.rounds || {};
             <div className="student-rounds-content">
               <div className="student-rounds-header">
                 <h2>{selectedStudent.studentName} ({selectedStudent.studentRegisterNumber}) - Company Rounds</h2>
-                <button
-                  className="student-rounds-close"
-                  onClick={() => setShowRoundDetails(false)}
-                >
-                  <FaTimes />
-                </button>
+                <div className="student-rounds-header-actions">
+                  {getSelectedCompanies(selectedStudent.rounds).length > 0 && (
+                    <div className="offer-selection-container">
+                      <label htmlFor="offer-select" className="offer-label">Selected Offer:</label>
+                      <select
+                        id="offer-select"
+                        className="offer-dropdown"
+                        value={selectedOffers[selectedStudent._id] || ""}
+                        onChange={(e) => handleOfferSelection(selectedStudent._id, e.target.value)}
+                      >
+                        <option value="">Select Company</option>
+                        {getSelectedCompanies(selectedStudent.rounds).map(({ companyId, companyName }) => (
+                          <option key={companyId} value={companyId}>
+                            {companyName}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  <button
+                    className="student-rounds-close"
+                    onClick={() => setShowRoundDetails(false)}
+                  >
+                    <FaTimes />
+                  </button>
+                </div>
               </div>
               <div className="student-rounds-body">
                 {Object.entries(selectedStudent.rounds).length > 0 ? (
