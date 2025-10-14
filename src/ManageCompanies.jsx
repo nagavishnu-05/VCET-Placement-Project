@@ -81,8 +81,13 @@ const ManageCompanies = () => {
   const [totalRoundCompanies, setTotalRoundCompanies] = useState(Array(10).fill(0));
   const [companiesWithRound1, setCompaniesWithRound1] = useState(0);
   const [averageSuccessRate, setAverageSuccessRate] = useState(0);
-  const [totalPlacedStudents, setTotalPlacedStudents] = useState(0);
+  const [totalPlacedStudents, setTotalPlacedStudents] = useState({ count: 0, loading: true });
   const [maxRounds, setMaxRounds] = useState(5);
+  
+  // Debug log for totalPlacedStudents state changes
+  useEffect(() => {
+    console.log("🔔 totalPlacedStudents state changed:", totalPlacedStudents);
+  }, [totalPlacedStudents]);
   // Per-card expanded state will be managed inside each CompanyCard to avoid
   // shared state issues where toggling one card could affect others.
 
@@ -329,40 +334,60 @@ const ManageCompanies = () => {
     const overallSuccessRate = totalAttended > 0 ? (totalSelected / totalAttended) * 100 : 0;
     setAverageSuccessRate(overallSuccessRate);
 
-    // Calculate total placed students (unique)
-    calculateTotalPlacedStudents();
+    // The total placed students calculation is independent of per-company stats,
+    // so it has been moved to its own useEffect hook to run on mount and year change.
   }, [companies, companyRoundStats, year]);
 
-  // Function to calculate total unique placed students from localStorage
-  const calculateTotalPlacedStudents = () => {
+  // Fetch total placed students on mount and when year changes
+  useEffect(() => {
+    console.log("🚀 useEffect triggered for totalPlacedStudents");
+    console.log("🚀 Year value:", year);
+    // Reset loading state when year changes
+    setTotalPlacedStudents({ count: 0, loading: true });
+    calculateTotalPlacedStudents();
+  }, [year]);
+
+  // Function to fetch final selected students
+  const fetchFinalSelectedStudents = async (year) => {
     try {
-      const studentRoundsData = localStorage.getItem("studentRounds");
-      if (!studentRoundsData) {
-        setTotalPlacedStudents(0);
-        return;
-      }
-
-      const studentRounds = JSON.parse(studentRoundsData);
-      const placedStudents = new Set();
-
-      studentRounds.forEach(student => {
-        const studentRoundsObj = student.rounds || {};
-        for (const companyId in studentRoundsObj) {
-          const company = companies.find(c => c._id === companyId);
-          if (company) {
-            const lastRound = `round${company.rounds}`;
-            if (studentRoundsObj[companyId][lastRound] === "selected") {
-              placedStudents.add(student.studentId);
-              break; // Count once per student
-            }
-          }
-        }
-      });
-
-      setTotalPlacedStudents(placedStudents.size);
+      console.log("🔍 Fetching final selected students for year:", year);
+      const response = await axios.get(`https://vcetplacement.onrender.com/api/shortlist/final-selected-students/${year}`);
+      console.log("✅ Final Selected Students Response:", response);
+      console.log("✅ Final Selected Students Data:", response.data);
+      // The API returns an object with a 'results' property containing the array
+      const results = response.data.results || [];
+      console.log("✅ Final Selected Students Array Length:", results.length);
+      console.log("✅ Final Selected Students Array:", JSON.stringify(results, null, 2));
+      return results;
     } catch (error) {
-      console.error("Error calculating placed students from localStorage:", error);
-      setTotalPlacedStudents(0);
+      console.error("❌ Error fetching final selected students:", error);
+      console.error("❌ Error details:", error.response?.data || error.message);
+      return [];
+    }
+  };
+
+  // Function to calculate total unique placed students
+  const calculateTotalPlacedStudents = async () => {
+    console.log("📊 Starting calculateTotalPlacedStudents...");
+    console.log("📊 Current year:", year);
+    try {
+      const finalSelectedStudents = await fetchFinalSelectedStudents(year);
+      console.log("📊 Received finalSelectedStudents:", finalSelectedStudents);
+      console.log("📊 Is array?", Array.isArray(finalSelectedStudents));
+      
+      // Get unique student IDs (a student may be placed in multiple companies)
+      const uniqueStudentIds = new Set(finalSelectedStudents.map(student => student.studentId));
+      const placedCount = uniqueStudentIds.size;
+      
+      console.log("📊 Total entries (including duplicates):", finalSelectedStudents.length);
+      console.log("📊 Unique student IDs:", Array.from(uniqueStudentIds));
+      console.log("📊 Total unique placed students count:", placedCount);
+      console.log("📊 Setting state with count:", placedCount);
+      setTotalPlacedStudents({ count: placedCount, loading: false });
+      console.log("📊 State updated successfully");
+    } catch (error) {
+      console.error("❌ Error calculating placed students:", error);
+      setTotalPlacedStudents({ count: 0, loading: false });
     }
   };
 
@@ -381,32 +406,38 @@ const ManageCompanies = () => {
   };
 
   // Function to generate WhatsApp message for placed students
-  const generatePlacedStudentsMessage = () => {
+  const generatePlacedStudentsMessage = async () => {
     try {
-      const studentRoundsData = localStorage.getItem("studentRounds");
+      const finalSelectedStudents = await fetchFinalSelectedStudents(year);
       const greeting = getGreeting();
 
-      if (!studentRoundsData) return `${greeting}\n\nSo far placed students list\n\nNo placed students yet.`;
+      if (!finalSelectedStudents || finalSelectedStudents.length === 0) {
+        return `${greeting}\n\nSo far placed students list\n\nNo placed students yet.`;
+      }
 
-      const studentRounds = JSON.parse(studentRoundsData);
-      const placedStudentsList = [];
+      // Ensure studentInformationsDetail is available
+      let studentDetails = studentInformationsDetail;
+      if (!studentDetails || studentDetails.length === 0) {
+        try {
+          const res = await axios.get(`https://vcetplacement.onrender.com/api/student/getStudentInfo?year=${year}`);
+          studentDetails = res.data;
+          setStudentInformationDetail(studentDetails); // Optionally update state
+        } catch (e) {
+          console.error("Error fetching student info for message:", e);
+          return `${greeting}\n\nSo far placed students list\n\nCould not fetch student details.`;
+        }
+      }
 
-      studentRounds.forEach(student => {
-        const studentRoundsObj = student.rounds || {};
-        for (const companyId in studentRoundsObj) {
-          const company = companies.find(c => c._id === companyId);
-          if (company) {
-            const lastRound = `round${company.rounds}`;
-            if (studentRoundsObj[companyId][lastRound] === "selected") {
-              const studentInfo = studentInformationsDetail.find(s => s._id === student.studentId);
-              if (studentInfo) {
-                placedStudentsList.push(`${studentInfo.studentName}(${company.name.toUpperCase()})`);
-              }
-              break; // Only count once per student
-            }
-          }
+      // Get unique students with their names
+      const uniqueStudents = new Map();
+      finalSelectedStudents.forEach(student => {
+        const studentInfo = studentDetails.find(s => s._id === student.studentId);
+        if (studentInfo && !uniqueStudents.has(student.studentId)) {
+          uniqueStudents.set(student.studentId, studentInfo.studentName);
         }
       });
+
+      const placedStudentsList = Array.from(uniqueStudents.values());
 
       if (placedStudentsList.length === 0) {
         return `${greeting}\n\nSo far placed students list\n\nNo placed students yet.`;
@@ -417,7 +448,7 @@ const ManageCompanies = () => {
       const batch = `${startYear}-${year}`;
 
       // Calculate placement statistics
-      const totalStudents = studentInformationsDetail.length;
+      const totalStudents = studentDetails.length;
       const placementInterested = Math.round(totalStudents * 0.93); // Approximate based on example
       const placementEligible = Math.round(totalStudents * 0.81); // Approximate based on example
       const placedCount = placedStudentsList.length;
@@ -425,8 +456,8 @@ const ManageCompanies = () => {
       const placementPercentage = ((placedCount / placementEligible) * 100).toFixed(2);
 
       let message = `${greeting}\n\nSo far placed students list\n\n`;
-      placedStudentsList.forEach((student, index) => {
-        message += `${index + 1}.${student}\n`;
+      placedStudentsList.forEach((studentName, index) => {
+        message += `${index + 1}.${studentName}\n`;
       });
 
       message += `\nPlacement statistics\n${batch}\n\n`;
@@ -1091,14 +1122,18 @@ const ManageCompanies = () => {
                       </div>
                       <div className="stat-item">
                         <p className="stat-label">Total Placed Students</p>
-                        <p className="stat-value">{totalPlacedStudents}</p>
+                        <p className="stat-value">
+                          {totalPlacedStudents.loading ? 'Loading...' : totalPlacedStudents.count}
+                        </p>
                       </div>
                       <div className="stat-item">
                         <p className="stat-label">Placement Percentage</p>
                         <p className="stat-value">
-                          {studentInformationsDetail.length > 0
-                            ? ((totalPlacedStudents / studentInformationsDetail.length) * 100).toFixed(1) + '%'
-                            : '0%'}
+                          {totalPlacedStudents.loading
+                            ? '...'
+                            : studentInformationsDetail.length > 0
+                              ? ((totalPlacedStudents.count / studentInformationsDetail.length) * 100).toFixed(1) + '%'
+                              : '0%'}
                         </p>
                       </div>
                     </div>
