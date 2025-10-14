@@ -213,19 +213,27 @@ const ManageCompanies = () => {
             const twelfth = parseFloat(student.studentTwelthPercentage);
             const diploma = parseFloat(student.studentDiploma);
             const cgpa = parseFloat(student.studentUGCGPA) || 0;
-            const arrear = parseFloat(student.studentCurrentArrears) || 0 ;
+            const arrear = parseFloat(student.studentCurrentArrears) || 0;
             const hoa = parseFloat(student.studentHistoryOfArrears) || 0;
 
             const twelfthValid = !isNaN(twelfth) && twelfth >= parseFloat(newCompany.twelfth);
             const diplomaValid = !isNaN(diploma) && diploma >= parseFloat(newCompany.diploma);
-            console.log(student.studentName, arrear, newCompany.currentArrears, arrear <= newCompany.currentArrears);
+            
+            // If historyofArrears or currentArrears is empty/null, don't filter by it (allow all students)
+            const historyArrearCheck = newCompany.historyofArrears === '' || newCompany.historyofArrears === null 
+              ? true 
+              : hoa <= parseFloat(newCompany.historyofArrears);
+            
+            const currentArrearCheck = newCompany.currentArrears === '' || newCompany.currentArrears === null 
+              ? true 
+              : arrear <= parseFloat(newCompany.currentArrears);
 
             return (
               tenth >= parseFloat(newCompany.tenth) &&
               (twelfthValid || diplomaValid) &&
               cgpa >= parseFloat(newCompany.cgpa) &&
-              arrear <= parseFloat(newCompany.currentArrears) &&
-              hoa <= parseFloat(newCompany.historyofArrears)
+              currentArrearCheck &&
+              historyArrearCheck
             );
           });
       setEligibleStudents(eligible);
@@ -428,12 +436,16 @@ const ManageCompanies = () => {
         }
       }
 
-      // Get unique students with their names
+      // Get unique students with their names and company info
       const uniqueStudents = new Map();
       finalSelectedStudents.forEach(student => {
         const studentInfo = studentDetails.find(s => s._id === student.studentId);
+        const companyInfo = companies.find(c => c._id === student.companyId);
         if (studentInfo && !uniqueStudents.has(student.studentId)) {
-          uniqueStudents.set(student.studentId, studentInfo.studentName);
+          uniqueStudents.set(student.studentId, {
+            name: studentInfo.studentName,
+            company: companyInfo?.name || 'Unknown Company'
+          });
         }
       });
 
@@ -456,8 +468,8 @@ const ManageCompanies = () => {
       const placementPercentage = ((placedCount / placementEligible) * 100).toFixed(2);
 
       let message = `${greeting}\n\nSo far placed students list\n\n`;
-      placedStudentsList.forEach((studentName, index) => {
-        message += `${index + 1}.${studentName}\n`;
+      placedStudentsList.forEach((student, index) => {
+        message += `${index + 1}. ${student.name} - ${student.company}\n`;
       });
 
       message += `\nPlacement statistics\n${batch}\n\n`;
@@ -539,13 +551,22 @@ const ManageCompanies = () => {
 
             const twelfthValid = !isNaN(twelfth) && twelfth >= parseFloat(formData.twelfth);
             const diplomaValid = !isNaN(diploma) && diploma >= parseFloat(formData.diploma);
+            
+            // If historyofArrears or currentArrears is empty/null, don't filter by it (allow all students)
+            const historyArrearCheck = formData.historyofArrears === '' || formData.historyofArrears === null 
+              ? true 
+              : hoa <= parseFloat(formData.historyofArrears);
+            
+            const currentArrearCheck = formData.currentArrears === '' || formData.currentArrears === null 
+              ? true 
+              : arrear <= parseFloat(formData.currentArrears);
 
             return (
               tenth >= parseFloat(formData.tenth) &&
               (twelfthValid || diplomaValid) &&
               cgpa >= parseFloat(formData.cgpa) &&
-              arrear <= parseFloat(formData.currentArrears) &&
-              hoa <= parseFloat(formData.historyofArrears)
+              currentArrearCheck &&
+              historyArrearCheck
             );
           });
           setEligibleStudents(eligible);
@@ -558,9 +579,15 @@ const ManageCompanies = () => {
     }
   }, [modalYear, showStudentSelect, formData]);
 
-  const filteredEligibleStudents = eligibleStudents.filter(student =>
-    student.studentName.toLowerCase().includes(studentSearch.toLowerCase())
-  );
+  const filteredEligibleStudents = eligibleStudents
+    .filter(student =>
+      student.studentName && student.studentName.toLowerCase().includes(studentSearch.toLowerCase())
+    )
+    .sort((a, b) => {
+      const regA = String(a.studentRegisterNumber || '');
+      const regB = String(b.studentRegisterNumber || '');
+      return regA.localeCompare(regB);
+    });
 
   const calculateFinalStatus = (roundData, totalRounds) => {
     if (!roundData) return "rejected";
@@ -1088,8 +1115,8 @@ const ManageCompanies = () => {
                       <h3>Overall Performance</h3>
                       <button
                         className="admin-submit-button"
-                        onClick={() => {
-                          const message = generatePlacedStudentsMessage();
+                        onClick={async () => {
+                          const message = await generatePlacedStudentsMessage();
                           const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
                           window.open(whatsappUrl, '_blank');
                         }}
@@ -1767,7 +1794,6 @@ const ManageCompanies = () => {
                         type="text"
                         id="historyArrears"
                         name="historyArrears"
-                        required
                         className="admin-form-input"
                         placeholder="Enter history of arrears"
                       />
@@ -1779,7 +1805,6 @@ const ManageCompanies = () => {
                         type="text"
                         id="currentArrears"
                         name="currentArrears"
-                        required
                         className="admin-form-input"
                         placeholder="Enter current arrears"
                       />
