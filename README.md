@@ -1,7 +1,19 @@
-# Project Description
-The VCET Placement Management Portal is a modern, responsive web application built exclusively for the Department of Computer Science and Engineering (CSE) at Velammal College of Engineering and Technology (VCET). It streamlines the end-to-end placement workflow for CSE by enabling administrators to manage academic batches and company drives, import and curate student data, and monitor candidate progress across multiple recruitment rounds in real time. The portal offers round-wise analytics and exports, company-wise shortlisting and final selections, and clear placement histories for each student. Built with React and Vite, it integrates with a secured REST API for reliable data operations and uses familiar tooling (Axios, React Router, Toastify, Chart.js) to deliver a fast, user-friendly experience for day-to-day placement coordination.
+# VCET Placement Management Portal
 
-# File Structure
+The **VCET Placement Management Portal** is a responsive web application developed exclusively for the Department of Computer Science and Engineering (CSE), Velammal College of Engineering and Technology (VCET). It simplifies and manages the complete placement workflow including student data management, company drives, recruitment rounds, shortlists, and placement analytics.
+
+## 📌 Features
+
+* Manage academic batches and student placement data  
+* Add and manage company drives with round-wise details  
+* Track student progress across recruitment rounds  
+* Company-wise shortlisting and final selection process  
+* Round-wise analytics and export support  
+* Individual placement history for each student  
+* Secured REST API integration for all operations
+
+## 🗂 File Structure
+
 ```
 VCET-Placement-Project/
 ├── public/
@@ -9,123 +21,112 @@ VCET-Placement-Project/
 │   ├── Admin/
 │   │   ├── Companies/
 │   │   │   ├── components/
-│   │   │   │   ├── AddCompanyForm.jsx
-│   │   │   │   ├── AnalyticsView.jsx
-│   │   │   │   ├── CollegeHeader.jsx
-│   │   │   │   ├── CompanyAnalyticsView.jsx
-│   │   │   │   ├── CompanyInsightsList.jsx
-│   │   │   │   ├── CompanyNavbar.jsx
-│   │   │   │   ├── RoundInsightsModal.jsx
-│   │   │   │   ├── StudentRoundsPopup.jsx
-│   │   │   │   └── StudentSelectionModal.jsx
 │   │   │   ├── ManageCompanies.jsx
 │   │   └── Students/
-│   │   │   ├── components/
-│   │   │   │   ├── StudentNavbar.jsx
-│   │   │   │   └── StudentRoundsModal.jsx
-│   │   │   │   └── StudentTable.jsx
-│   │   │   ├── ManageStudents.jsx
+│   │       ├── components/
+│   │       ├── ManageStudents.jsx
 │   ├── assets/
 │   ├── styles/
 │   └── utils/
-│   │   ├── AdminDashboard.jsx
-│   │   ├── App.css
-│   │   ├── App.jsx
-│   │   ├── CompanyCard.jsx
-│   │   ├── Dashboard.jsx
-│   │   ├── index.css
-│   │   ├── main.jsx
+│       ├── AdminDashboard.jsx
+│       ├── App.css
+│       ├── App.jsx
+│       ├── CompanyCard.jsx
+│       ├── Dashboard.jsx
+│       ├── index.css
+│       ├── main.jsx
 ├── index.html
 ├── package.json
 ├── vite.config.js
 └── README.md
 ```
 
-# Files & Uses
-- src/App.jsx : Main application routing and bootstrapping
-- src/Admin/Companies/ManageCompanies.jsx : Manage companies and recruitment rounds
-- src/Admin/Students/ManageStudents.jsx : Manage student info and placement status
-- src/styles/ : Page and component styles
-- src/utils/disableDevTools.js : Disables browser dev tools in production
+## ⚙️ Tech Stack
 
-# Tech Stacks
+### Frontend
 
-## Frontend
-- React + Vite
-- React Router DOM
-- Axios
-- React Toastify
-- React Icons
-- Chart.js + chartjs-plugin-datalabels (analytics)
+* React + Vite  
+* React Router DOM  
+* Axios for API requests  
+* React Toastify for notifications  
+* React Icons  
+* Chart.js + chartjs-plugin-datalabels for analytics
 
-## Backend (External API)
-- VCET Placement REST API (consumed by this frontend)
-- Endpoints for Students, Companies, Shortlists, and Analytics
-- Authentication and authorization handled by the backend
-- Note: Backend is hosted externally (e.g., Render). This repo contains the frontend only.
+### Backend (External API)
 
-# Installation
+* VCET Placement REST API  
+* Endpoints for Students, Companies, Shortlists, and Analytics  
+* Authentication and authorization handled by backend
 
-## Frontend (this repository)
-1. Install dependencies
+## 🚀 Installation & Setup
+
+### 1. Install Dependencies
+
 ```bash
 npm install
 ```
-2. Start the development server
+
+### 2. Run Development Server
+
 ```bash
 npm run dev
 ```
-3. Build for production
+
+### 3. Build for Production
+
 ```bash
 npm run build
 ```
-4. Preview production build
+
+### 4. Preview Production Build
+
 ```bash
 npm run preview
 ```
 
-## Backend (external API, optional local setup)
-If you maintain/run the backend locally, follow your backend repository’s README. Typical steps:
-1. Clone the backend repository
-```bash
-git clone <backend-repo-url>
-cd <backend-repo>
-```
-2. Install dependencies and set environment variables
-```bash
-npm install
-# create .env and configure values like:
-# MONGODB_URI=...
-# JWT_SECRET=...
-# PORT=4000
-```
-3. Run backend in development
-```bash
-npm run dev
-```
-4. Update frontend API base URL (if needed)
-- Search for API base URLs in the code (e.g., `https://vcetplacement.onrender.com/...`) and point them to your local backend (e.g., `http://localhost:4000`).
+## 👨‍💻 Developed & Maintained By
 
-# Developed & Maintained by
+### Frontend Team
 
-© 2023 - 2027 CSE of VCET
+* Nagavishnu Karthik B S  
+* Mukesh Kanna M  
+* Manavendra Sailesh A
 
-<div style="display: flex; gap: 32px; align-items: flex-start;">
-  <div>
-    <h4>Frontend</h4>
-    <ul>
-      <li>Nagavishnu Karthik B S</li>
-      <li>Mukesh Kanna M</li>
-      <li>Manavendra Sailesh A</li>
-    </ul>
-  </div>
-  <div>
-    <h4>Backend</h4>
-    <ul>
-      <li>Achuthan T B</li>
-      <li>Logesh Kumar</li>
-      <li>Priya Dharshini M</li>
-      <li>Rajadharshini R</li>
-    </ul>
-  </div>
-</div>
+### Backend Team
+
+* Achuthan T B  
+* Logesh Kumar  
+* Priya Dharshini M  
+* Rajadharshini R
+
+---
+
+## 📜 License
+
+This project is intended for academic and internal use by the Department of Computer Science and Engineering, VCET. Redistribution or commercial use is not permitted without prior permission.
+
+## 🛠 Badges
+
+![React](https://img.shields.io/badge/React-18.0-blue) 
+![Vite](https://img.shields.io/badge/Vite-Frontend-purple) 
+![License](https://img.shields.io/badge/License-Academic-orange) 
+![PRs](https://img.shields.io/badge/PRs-Welcome-brightgreen)
+
+## 🤝 Contributing
+
+1. Fork the repository  
+2. Create a new branch (`feature-name`)  
+3. Commit your changes  
+4. Push to the branch  
+5. Submit a pull request
+
+## 🚀 Future Enhancements
+
+* Role-based access for faculty and placement coordinators  
+* Automated resume generation for students  
+* AI-based placement prediction and insights  
+* Email & SMS notifications for drive updates
+
+---
+
+<h4 align="center">© 2023 – 2027 Department of CSE, VCET</h4>
