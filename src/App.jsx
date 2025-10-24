@@ -1,8 +1,8 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Dashboard from './Dashboard';
 import AdminDashboard from './AdminDashboard';
-import ManageCompanies from './ManageCompanies';
-import ManageStudents from './ManageStudents';
+import ManageCompanies from './Admin/Companies/ManageCompanies';
+import ManageStudents from './Admin/Students/ManageStudents';
 import './App.css'
 
 function App() {
