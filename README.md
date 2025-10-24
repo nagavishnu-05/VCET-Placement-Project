@@ -2,6 +2,7 @@
 A web-based portal for managing student placements, company interactions, and recruitment processes at VCET.
 
 # File Structure
+```
 VCET-Placement-Project/
 ├── public/
 ├── src/
@@ -38,6 +39,7 @@ VCET-Placement-Project/
 ├── package.json
 ├── vite.config.js
 └── README.md
+```
 
 # Files & Uses
 - src/App.jsx : Main application routing and bootstrapping
