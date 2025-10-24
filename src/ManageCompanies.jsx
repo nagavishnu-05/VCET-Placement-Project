@@ -75,6 +75,7 @@ const ManageCompanies = () => {
   const [modalYear] = useState(year);
   const [studentSearch, setStudentSearch] = useState("");
   const [companyRoundStats, setCompanyRoundStats] = useState({});
+  const [selectedRoles, setSelectedRoles] = useState({});
   // Analytics state variables
   const [totalRoundAttended, setTotalRoundAttended] = useState(Array(10).fill(0));
   const [totalRoundCleared, setTotalRoundCleared] = useState(Array(10).fill(0));
@@ -729,6 +730,7 @@ const ManageCompanies = () => {
           companyId: selectedCompany._id,
           rounds: roundBooleanMap,
           finalResult,
+          role: selectedRoles[student.id] || null,
         };
       });
       console.log("Sending updates", updates);
@@ -823,6 +825,7 @@ const ManageCompanies = () => {
     setShowStudentPopup(false);
     setSelectedCompany(null);
     setSearchQuery("");
+    setSelectedRoles({});
   };
   const filteredStudents = students.filter((student) =>
     student.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -1545,6 +1548,7 @@ const ManageCompanies = () => {
                           row[`Round ${i}`] = val.charAt(0).toUpperCase() + val.slice(1);
                         }
                         row["Final Status"] = calculateFinalStatus(rounds, selectedCompany.rounds).charAt(0).toUpperCase() + calculateFinalStatus(rounds, selectedCompany.rounds).slice(1);
+                        row["Role"] = selectedRoles[student.id] || "";
                         return row;
                       }
                     });
@@ -1579,6 +1583,7 @@ const ManageCompanies = () => {
                       <th key={i}>Round {i + 1}</th>
                     ))}
                     <th>Final Status</th>
+                    <th>Role</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1656,6 +1661,29 @@ const ManageCompanies = () => {
                             <span className={`round-status ${finalStatus}`}>
                               {finalStatus}
                             </span>
+                          </td>
+                          <td>
+                            <select
+                              value={selectedRoles[student.id] || ""}
+                              onChange={(e) => {
+                                setSelectedRoles(prev => ({
+                                  ...prev,
+                                  [student.id]: e.target.value
+                                }));
+                              }}
+                              style={{
+                                padding: '0.25rem',
+                                border: '1px solid #d1d5db',
+                                borderRadius: '0.25rem',
+                                fontSize: '0.875rem',
+                                width: '150px'
+                              }}
+                            >
+                              <option value="">Select Role</option>
+                              <option value="Role Offered">Role Offered</option>
+                              <option value="Internship">Internship</option>
+                              <option value="Incubation">Incubation</option>
+                            </select>
                           </td>
                         </tr>
                       );
