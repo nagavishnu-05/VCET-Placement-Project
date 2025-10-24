@@ -35,6 +35,19 @@ const ManageStudents = () => {
   const [studentRounds, setStudentRounds] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedOffers, setSelectedOffers] = useState({});
+  const [studentRoles, setStudentRoles] = useState({});
+
+  // Load roles from localStorage on component mount
+  useEffect(() => {
+    try {
+      const savedRoles = localStorage.getItem("studentRoles");
+      if (savedRoles) {
+        setStudentRoles(JSON.parse(savedRoles));
+      }
+    } catch (e) {
+      console.log("Error loading roles from localStorage:", e);
+    }
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -76,6 +89,29 @@ const ManageStudents = () => {
               for (let i = 1; i <= company.rounds; i++) {
                 const key = `round${i}`;
                 roundsData[key] = entry.rounds?.[key] === true ? "selected" : "rejected";
+              }
+              // Try to get role from API, fallback to localStorage
+              let role = entry.role;
+              if (!role) {
+                try {
+                  const localRounds = JSON.parse(localStorage.getItem("studentRounds") || "[]");
+                  const studentRound = localRounds.find(sr => sr.studentId === studentId);
+                  if (studentRound?.rounds?.[company._id]?.role) {
+                    role = studentRound.rounds[company._id].role;
+                  }
+                } catch (e) {
+                  console.log("Error reading from localStorage:", e);
+                }
+              }
+
+              roundsData.role = role || null;
+
+              // Update state with role if found
+              if (role) {
+                setStudentRoles(prev => ({
+                  ...prev,
+                  [`${studentId}_${company._id}`]: role
+                }));
               }
               studentRoundsMap[studentId][company._id] = roundsData;
             });
@@ -186,10 +222,10 @@ const ManageStudents = () => {
     const companyRounds = rounds[company._id];
     if (!companyRounds) return "Rejected";
 
-    // Check if all rounds are selected
-    const allRoundsSelected = Object.entries(companyRounds).every(
-      ([, status]) => status === "selected"
-    );
+    // Check if all rounds are selected (exclude role property)
+    const allRoundsSelected = Object.entries(companyRounds)
+      .filter(([key]) => key !== 'role')
+      .every(([, status]) => status === "selected");
 
     return allRoundsSelected ? "Selected" : "Rejected";
   };
@@ -211,9 +247,16 @@ const ManageStudents = () => {
 
       if (company) {
         Object.entries(roundSet).forEach(([round, status]) => {
-          exportData[0][
-            `${company.name} - ${round.replace("round", "Round ")}`
-          ] = status.charAt(0).toUpperCase() + status.slice(1);
+          if (round === 'role') {
+            const roleKey = `${student._id}_${companyId}`;
+            if (studentRoles[roleKey]) {
+              exportData[0][`${company.name} - Role`] = studentRoles[roleKey];
+            }
+          } else {
+            exportData[0][
+              `${company.name} - ${round.replace("round", "Round ")}`
+            ] = status.charAt(0).toUpperCase() + status.slice(1);
+          }
         });
 
         exportData[0][`${company.name} - Final Status`] = calculateFinalStatus(
@@ -252,6 +295,11 @@ const ManageStudents = () => {
           { [company._id]: companyRounds },
           company
         );
+
+        const roleKey = `${student._id}_${company._id}`;
+        if (studentRoles[roleKey]) {
+          row[`${company.name} - Role`] = studentRoles[roleKey];
+        }
       });
 
       return row;
@@ -426,9 +474,23 @@ const ManageStudents = () => {
                         if (!company) return null;
                         return (
                           <div key={companyId} className="company-round-card">
-                            <h3 className="company-name">{company.name}</h3>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <h3 className="company-name">{company.name}</h3>
+                              {calculateFinalStatus(selectedStudent.rounds, company) === "Selected" && studentRoles[`${selectedStudent._id}_${companyId}`] && (
+                                <div className="role-badge" style={{
+                                  backgroundColor: '#10b981',
+                                  color: 'white',
+                                  padding: '4px 8px',
+                                  borderRadius: '4px',
+                                  fontSize: '0.875rem',
+                                  fontWeight: '600'
+                                }}>
+                                  {studentRoles[`${selectedStudent._id}_${companyId}`]}
+                                </div>
+                              )}
+                            </div>
                             <div className="rounds-container">
-                              {Object.entries(rounds).map(([round, status]) => (
+                              {Object.entries(rounds).filter(([round]) => round !== 'role').map(([round, status]) => (
                                 <div key={round} className="round-item">
                                   <span className="round-label">
                                     {round.replace("round", "Round ")}

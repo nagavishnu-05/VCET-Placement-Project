@@ -794,6 +794,17 @@ const ManageCompanies = () => {
 
         // Save merged data
         localStorage.setItem("studentRounds", JSON.stringify(mergedRounds));
+
+        // Also save roles separately for ManageStudents
+        const rolesMap = {};
+        students.forEach((student) => {
+          const studentId = student.id || student._id;
+          const role = selectedRoles[studentId];
+          if (role) {
+            rolesMap[`${studentId}_${selectedCompany._id}`] = role;
+          }
+        });
+        localStorage.setItem("studentRoles", JSON.stringify(rolesMap));
       } catch (localError) {
         console.error("Failed to update localStorage:", localError);
         // Don't throw - API succeeded, localStorage is secondary
