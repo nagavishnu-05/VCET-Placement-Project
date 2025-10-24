@@ -1,5 +1,5 @@
 # Project Description
-A web-based portal for managing student placements, company interactions, and recruitment processes at VCET.
+The VCET Placement Management Portal is a modern, responsive web application built exclusively for the Department of Computer Science and Engineering (CSE) at Velammal College of Engineering and Technology (VCET). It streamlines the end-to-end placement workflow for CSE by enabling administrators to manage academic batches and company drives, import and curate student data, and monitor candidate progress across multiple recruitment rounds in real time. The portal offers round-wise analytics and exports, company-wise shortlisting and final selections, and clear placement histories for each student. Built with React and Vite, it integrates with a secured REST API for reliable data operations and uses familiar tooling (Axios, React Router, Toastify, Chart.js) to deliver a fast, user-friendly experience for day-to-day placement coordination.
 
 # File Structure
 ```
