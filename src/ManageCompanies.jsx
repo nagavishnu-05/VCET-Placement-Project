@@ -89,10 +89,7 @@ const ManageCompanies = () => {
   useEffect(() => {
     console.log("🔔 totalPlacedStudents state changed:", totalPlacedStudents);
   }, [totalPlacedStudents]);
-  // Per-card expanded state will be managed inside each CompanyCard to avoid
-  // shared state issues where toggling one card could affect others.
 
-  // Function to fetch round statistics for a company
   const fetchCompanyRoundStats = useCallback(async (companyId) => {
     console.log(`Fetching stats for company ${companyId}`); // Debug log
     try {
@@ -1663,27 +1660,31 @@ const ManageCompanies = () => {
                             </span>
                           </td>
                           <td>
-                            <select
-                              value={selectedRoles[student.id] || ""}
-                              onChange={(e) => {
-                                setSelectedRoles(prev => ({
-                                  ...prev,
-                                  [student.id]: e.target.value
-                                }));
-                              }}
-                              style={{
-                                padding: '0.25rem',
-                                border: '1px solid #d1d5db',
-                                borderRadius: '0.25rem',
-                                fontSize: '0.875rem',
-                                width: '150px'
-                              }}
-                            >
-                              <option value="">Select Role</option>
-                              <option value="Role Offered">Role Offered</option>
-                              <option value="Internship">Internship</option>
-                              <option value="Incubation">Incubation</option>
-                            </select>
+                            {finalStatus === "selected" ? (
+                              <select
+                                value={selectedRoles[student.id] || ""}
+                                onChange={(e) => {
+                                  setSelectedRoles(prev => ({
+                                    ...prev,
+                                    [student.id]: e.target.value
+                                  }));
+                                }}
+                                style={{
+                                  padding: '0.25rem',
+                                  border: '1px solid #d1d5db',
+                                  borderRadius: '0.25rem',
+                                  fontSize: '0.875rem',
+                                  width: '150px'
+                                }}
+                              >
+                                <option value="">Select Role</option>
+                                <option value="Role Offered">Role Offered</option>
+                                <option value="Internship">Internship</option>
+                                <option value="Incubation">Incubation</option>
+                              </select>
+                            ) : (
+                              <span>-</span>
+                            )}
                           </td>
                         </tr>
                       );
