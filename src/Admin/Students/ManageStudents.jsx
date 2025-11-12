@@ -27,12 +27,14 @@ const ManageStudents = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedOffers, setSelectedOffers] = useState({});
   const [studentRoles, setStudentRoles] = useState({});
-
+  const [studentView, setStudentView] = useState({
+              studentId: "",
+              companies: [],
+            });
   const handleLogout = () => {
     window.location.href = "/";
   };
 
-  // Load roles from localStorage on component mount
   useEffect(() => {
     try {
       const savedRoles = localStorage.getItem("studentRoles");
@@ -58,124 +60,174 @@ const ManageStudents = () => {
     fetchData();
   }, [year]);
 
+  // useEffect(() => {
+  //   const loadData = async () => {
+  //     try {
+  //       const res = await axios.get(
+  //         `https://vcetplacement.onrender.com/api/company/ShowAllcompanies?year=${year}`
+  //       );
+  //       setCompanies(res.data);
+  //       console.log("Companies fetched:", res.data);
+
+  //       const studentRoundsMap = {};
+  //       for (const company of res.data) {
+  //         try {
+  //           const shortlistRes = await axios.get(
+  //             `https://vcetplacement.onrender.com/api/shortlist/getshortlist/${year}/${company._id}`
+  //           );
+  //           const shortlisted = shortlistRes.data;
+  //           shortlisted.forEach((entry) => {
+  //             const studentId = entry.studentId._id;
+  //             if (!studentRoundsMap[studentId]) studentRoundsMap[studentId] = {};
+  //             const roundsData = {};
+  //             for (let i = 1; i <= company.rounds; i++) {
+  //               const key = `round${i}`;
+  //               roundsData[key] = entry.rounds?.[key] === true ? "selected" : "rejected";
+  //             }
+  //             let role = entry.role;
+  //             if (!role) {
+  //               try {
+  //                 const localRounds = JSON.parse(localStorage.getItem("studentRounds") || "[]");
+  //                 const studentRound = localRounds.find(sr => sr.studentId === studentId);
+  //                 if (studentRound?.rounds?.[company._id]?.role) {
+  //                   role = studentRound.rounds[company._id].role;
+  //                 }
+  //               } catch (e) {
+  //                 console.log("Error reading from localStorage:", e);
+  //               }
+  //             }
+
+  //             roundsData.role = role || null;
+
+  //             if (role) {
+  //               setStudentRoles(prev => ({
+  //                 ...prev,
+  //                 [`${studentId}_${company._id}`]: role
+  //               }));
+  //             }
+  //             studentRoundsMap[studentId][company._id] = roundsData;
+  //           });
+  //         } catch (e) {
+  //           console.log(`Error fetching shortlist for company ${company._id}:`, e);
+  //         }
+  //       }
+
+
+  //       const studentRoundsArray = Object.entries(studentRoundsMap).map(([studentId, rounds]) => ({ studentId, rounds }));
+  //       setStudentRounds(studentRoundsArray);
+  //       console.log("Student round" , studentRounds);
+  //       console.log("Student rounds fetched:", studentRoundsArray);
+  //     } catch (error) {
+  //       console.error("Error fetching companies:", error);
+  //     }
+  //   };
+
+  //   loadData();
+
+  //   const intervalId = setInterval(loadData, 10000);
+
+  //   return () => clearInterval(intervalId);
+  // }, [year]);
+
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const res = await axios.get(
-          `https://vcetplacement.onrender.com/api/company/ShowAllcompanies?year=${year}`
-        );
-        setCompanies(res.data);
-        console.log("Companies fetched:", res.data);
-
-        // Fetch student rounds from API
-        const studentRoundsMap = {};
-        for (const company of res.data) {
-          try {
-            const shortlistRes = await axios.get(
-              `https://vcetplacement.onrender.com/api/shortlist/getshortlist/${year}/${company._id}`
-            );
-            const shortlisted = shortlistRes.data;
-            shortlisted.forEach((entry) => {
-              const studentId = entry.studentId._id;
-              if (!studentRoundsMap[studentId]) studentRoundsMap[studentId] = {};
-              const roundsData = {};
-              for (let i = 1; i <= company.rounds; i++) {
-                const key = `round${i}`;
-                roundsData[key] = entry.rounds?.[key] === true ? "selected" : "rejected";
-              }
-              // Try to get role from API, fallback to localStorage
-              let role = entry.role;
-              if (!role) {
-                try {
-                  const localRounds = JSON.parse(localStorage.getItem("studentRounds") || "[]");
-                  const studentRound = localRounds.find(sr => sr.studentId === studentId);
-                  if (studentRound?.rounds?.[company._id]?.role) {
-                    role = studentRound.rounds[company._id].role;
-                  }
-                } catch (e) {
-                  console.log("Error reading from localStorage:", e);
-                }
-              }
-
-              roundsData.role = role || null;
-
-              // Update state with role if found
-              if (role) {
-                setStudentRoles(prev => ({
-                  ...prev,
-                  [`${studentId}_${company._id}`]: role
-                }));
-              }
-              studentRoundsMap[studentId][company._id] = roundsData;
-            });
-          } catch (e) {
-            console.log(`Error fetching shortlist for company ${company._id}:`, e);
-          }
-        }
-        const studentRoundsArray = Object.entries(studentRoundsMap).map(([studentId, rounds]) => ({ studentId, rounds }));
-        setStudentRounds(studentRoundsArray);
-        console.log("Student rounds fetched:", studentRoundsArray);
-      } catch (error) {
-        console.error("Error fetching companies:", error);
-      }
-    };
-
-    loadData();
-
-    const intervalId = setInterval(loadData, 10000);
-
-    return () => clearInterval(intervalId);
-  }, [year]);
-
-  const calculateFinalStatus = (rounds, company) => {
-    if (!rounds || !company) return "Rejected";
-
-    const companyRounds = rounds[company._id];
-    if (!companyRounds) return "Rejected";
-
-    // Check if all rounds are selected (exclude role property)
-    const allRoundsSelected = Object.entries(companyRounds)
-      .filter(([key]) => key !== 'role')
-      .every(([, status]) => status === "selected");
-
-    return allRoundsSelected ? "Selected" : "Rejected";
+  const loadData = async () => {
+    try {
+      const res = await axios.get(
+        `https://vcetplacement.onrender.com/api/company/ShowAllcompanies?year=${year}`
+      );
+      setCompanies(res.data);
+      console.log("✅ Companies fetched:", res.data);
+    } catch (error) {
+      console.error("❌ Error fetching companies:", error);
+    }
   };
 
-  const handleViewRounds = (student) => {
-    const found = studentRounds.find(s => s.studentId === student._id);
-    const roundData = found?.rounds || {};
+  loadData();
+}, [year]);
 
-    setSelectedStudent({ ...student, rounds: roundData });
-    console.log(selectedStudent);
-    const selectedList = getSelectedCompanies(roundData);
-    if (selectedList.length === 1) {
-      const onlyCompanyId = selectedList[0].companyId;
-      setSelectedOffers(prev => ({ ...prev, [student._id]: onlyCompanyId }));
+
+  useEffect(() => {
+  if (studentView && Object.keys(studentView).length > 0) {
+    console.log("✅ Updated studentView:", studentView);
+  }
+}, [studentView]);
+
+const calculateFinalStatus = (rounds, company) => {
+  if (!rounds || !company) return "Rejected";
+
+  const companyRounds = rounds[company._id];
+  if (!companyRounds) return "Rejected";
+
+  const allRoundsSelected = Object.entries(companyRounds)
+    .filter(([key]) => key !== 'role')
+    .every(([, status]) => status === "selected");
+
+  return allRoundsSelected ? "Selected" : "Rejected";
+};
+
+const handleViewRounds = async (student) => {
+  if (!student?._id) {
+    console.error("Invalid student data");
+    toast.error("Invalid student data");
+    return;
+  }
+
+  try {
+    const res = await axios.get(
+      `https://vcetplacement.onrender.com/api/shortlist/${student._id}/companies-rounds?year=${year}`
+    );
+
+    if (!res.data) {
+      throw new Error("No data received from server");
     }
 
-    setShowRoundDetails(true);
-  };
+    const combinedData = {
+      ...res.data,
+      studentName: student.studentName || "",
+      studentRegisterNumber: student.studentRegisterNumber || "",
+      studentId: student._id,
+      companies: Array.isArray(res.data.companies) ? res.data.companies : []
+    };
 
-  const getSelectedCompanies = (rounds) => {
-    if (!rounds) return [];
-    
-    return Object.entries(rounds)
-      .map(([companyId, roundSet]) => {
-        const company = companies.find((c) => c._id === companyId);
-        if (!company) return null;
-        
-        const finalStatus = calculateFinalStatus({ [companyId]: roundSet }, company);
-        if (finalStatus === "Selected") {
-          return { companyId, companyName: company.name };
-        }
-        return null;
-      })
-      .filter(Boolean);
-  };
+    setStudentView(combinedData);
+    setShowRoundDetails(true);
+
+    const selectedList = getSelectedCompanies(combinedData.companies);
+    if (selectedList.length === 1) {
+      setSelectedOffers(prev => ({
+        ...prev,
+        [student._id]: selectedList[0].companyId,
+      }));
+    }
+  } catch (err) {
+    console.error("Error fetching student rounds:", err);
+    toast.error("Failed to load student rounds. Please try again.");
+  }
+};
+
+const getSelectedCompanies = (companiesData = []) => {
+  if (!Array.isArray(companiesData)) return [];
+  
+  return companiesData
+    .filter(companyData => companyData && companyData.companyId)
+    .map(companyData => {
+      const company = companies.find(c => c && c._id === companyData.companyId);
+      if (!company || !company.name) return null;
+      
+      const finalResult = companyData.finalResult;
+      if (finalResult === true || finalResult === "Selected") {
+        return { 
+          companyId: companyData.companyId, 
+          companyName: company.name 
+        };
+      }
+      return null;
+    })
+    .filter(Boolean);
+};
 
   const handleOfferSelection = async (studentId, companyId) => {
     try {
-      // Update local state
       setSelectedOffers(prev => ({
         ...prev,
         [studentId]: companyId
@@ -331,6 +383,7 @@ const ManageStudents = () => {
           handleOfferSelection={handleOfferSelection}
           calculateFinalStatus={calculateFinalStatus}
           studentRoles={studentRoles}
+          studentView = {studentView}
         />
       </div>
     </div>

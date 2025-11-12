@@ -4,26 +4,32 @@ import { FaTimes } from "react-icons/fa";
 const StudentRoundsModal = ({
   showRoundDetails,
   setShowRoundDetails,
-  selectedStudent,
-  companies,
-  selectedOffers,
-  handleOfferSelection,
-  calculateFinalStatus,
-  studentRoles
+  companies = [],
+  selectedOffers = {},
+  handleOfferSelection = () => {},
+  calculateFinalStatus = () => {},
+  studentRoles = {},
+  studentView = null,
 }) => {
-  if (!showRoundDetails || !selectedStudent) return null;
+  if (!showRoundDetails || !studentView || !studentView.studentId) {
+    return null;
+  }
 
-  const getSelectedCompanies = (rounds) => {
-    if (!rounds) return [];
-    
-    return Object.entries(rounds)
-      .map(([companyId, roundSet]) => {
-        const company = companies.find((c) => c._id === companyId);
-        if (!company) return null;
+  const getSelectedCompanies = (companiesData = []) => {
+    if (!Array.isArray(companiesData)) return [];
+
+    return companiesData
+      .filter(companyData => companyData && companyData.companyId)
+      .map((companyData) => {
+        const company = companies.find(comp => comp && comp._id === companyData.companyId);
+        if (!company || !company.name) return null;
         
-        const finalStatus = calculateFinalStatus({ [companyId]: roundSet }, company);
-        if (finalStatus === "Selected") {
-          return { companyId, companyName: company.name };
+        const finalResult = companyData.finalResult;
+        if (finalResult === true || finalResult === "Selected") {
+          return { 
+            companyId: companyData.companyId, 
+            companyName: company.name 
+          };
         }
         return null;
       })
@@ -34,19 +40,25 @@ const StudentRoundsModal = ({
     <div className="student-rounds-modal">
       <div className="student-rounds-content">
         <div className="student-rounds-header">
-          <h2>{selectedStudent.studentName} ({selectedStudent.studentRegisterNumber}) - Company Rounds</h2>
+          <h2>
+            {studentView.studentName || 'N/A'} 
+            ({studentView.studentRegisterNumber || 'N/A'}) - Company Rounds
+          </h2>
+
           <div className="student-rounds-header-actions">
-            {getSelectedCompanies(selectedStudent.rounds).length > 0 && (
+            {getSelectedCompanies(studentView.companies).length > 0 && (
               <div className="offer-selection-container">
-                <label htmlFor="offer-select" className="offer-label">Selected Offer:</label>
+                <label htmlFor="offer-select" className="offer-label">
+                  Selected Offer:
+                </label>
                 <select
                   id="offer-select"
                   className="offer-dropdown"
-                  value={selectedOffers[selectedStudent._id] || ""}
-                  onChange={(e) => handleOfferSelection(selectedStudent._id, e.target.value)}
+                  value={selectedOffers[studentView.studentId] || ""}
+                  onChange={(e) => handleOfferSelection(studentView.studentId, e.target.value)}
                 >
                   <option value="">Select Company</option>
-                  {getSelectedCompanies(selectedStudent.rounds).map(({ companyId, companyName }) => (
+                  {getSelectedCompanies(studentView.companies).map(({ companyId, companyName }) => (
                     <option key={companyId} value={companyId}>
                       {companyName}
                     </option>
@@ -54,6 +66,7 @@ const StudentRoundsModal = ({
                 </select>
               </div>
             )}
+
             <button
               className="student-rounds-close"
               onClick={() => setShowRoundDetails(false)}
@@ -62,69 +75,99 @@ const StudentRoundsModal = ({
             </button>
           </div>
         </div>
+
         <div className="student-rounds-body">
-          {Object.entries(selectedStudent.rounds).length > 0 ? (
+          {Array.isArray(studentView.companies) && studentView.companies.length > 0 ? (
             <div className="company-rounds-grid">
-              {Object.entries(selectedStudent.rounds).map(
-                ([companyId, rounds]) => {
-                  const company = companies.find((c) => c._id === companyId);
-                 
-                  if (!company) return null;
-                  return (
-                    <div key={companyId} className="company-round-card">
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <h3 className="company-name">{company.name}</h3>
-                        {calculateFinalStatus(selectedStudent.rounds, company) === "Selected" && studentRoles[`${selectedStudent._id}_${companyId}`] && (
-                          <div className="role-badge" style={{
-                            backgroundColor: '#10b981',
-                            color: 'white',
-                            padding: '4px 8px',
-                            borderRadius: '4px',
-                            fontSize: '0.875rem',
-                            fontWeight: '600'
-                          }}>
-                            {studentRoles[`${selectedStudent._id}_${companyId}`]}
+              {studentView.companies.map((companyData) => {
+                if (!companyData || !companyData.companyId) return null;
+                const company = companies.find((c) => c && c._id === companyData.companyId);
+                if (!company) return null;
+
+                const companyId = companyData.companyId;
+                const rounds = companyData.rounds || {};
+                const finalResult = companyData.finalResult;
+
+                return (
+                  <div key={companyId} className="company-round-card">
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <h3 className="company-name">{company.name}</h3>
+
+                      {finalResult === true &&
+                        studentRoles[`${studentView.studentId}_${companyId}`] && (
+                          <div
+                            className="role-badge"
+                            style={{
+                              backgroundColor: "#10b981",
+                              color: "white",
+                              padding: "4px 8px",
+                              borderRadius: "4px",
+                              fontSize: "0.875rem",
+                              fontWeight: "600",
+                            }}
+                          >
+                            {studentRoles[`${studentView.studentId}_${companyId}`]}
                           </div>
                         )}
-                      </div>
-                      <div className="rounds-container">
-                        {Object.entries(rounds).filter(([round]) => round !== 'role').map(([round, status]) => (
+                    </div>
+
+                    <div className="rounds-container">
+                      {Object.entries(rounds)
+                        .filter(([round]) => round !== "role")
+                        .map(([round, status]) => (
                           <div key={round} className="round-item">
                             <span className="round-label">
                               {round.replace("round", "Round ")}
                             </span>
-                            <span className={`round-status ${status}`}>
-                              {status.charAt(0).toUpperCase() +
-                                status.slice(1)}
+                            <span
+                              className={`round-status ${
+                                status === true
+                                  ? "selected"
+                                  : status === false
+                                  ? "rejected"
+                                  : "pending"
+                              }`}
+                            >
+                              {status === true
+                                ? "Selected"
+                                : status === false
+                                ? "Rejected"
+                                : "Pending"}
                             </span>
                           </div>
                         ))}
-                        <div className="round-item final-status">
-                          <span className="round-label">
-                            Final Status
-                          </span>
-                          <span
-                            className={`round-status ${calculateFinalStatus(
-                              selectedStudent.rounds,
-                              company
-                            ).toLowerCase()}`}
-                          >
-                            {calculateFinalStatus(
-                              selectedStudent.rounds,
-                              company
-                            )}
-                          </span>
-                        </div>
+
+                      <div className="round-item final-status">
+                        <span className="round-label">Final Status</span>
+                        <span
+                          className={`round-status ${
+                            finalResult === true
+                              ? "selected"
+                              : finalResult === false
+                              ? "rejected"
+                              : "pending"
+                          }`}
+                        >
+                          {finalResult === true
+                            ? "Selected"
+                            : finalResult === false
+                            ? "Rejected"
+                            : "Pending"}
+                        </span>
                       </div>
                     </div>
-                  );
-                }
-              )}
+                  </div>
+                );
+              })}
             </div>
           ) : (
-            <p className="no-rounds-message">
-              No company rounds data available
-            </p>
+            <p className="no-rounds-message">No company rounds data available</p>
           )}
         </div>
       </div>
