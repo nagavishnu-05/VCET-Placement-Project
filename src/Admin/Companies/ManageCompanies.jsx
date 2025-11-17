@@ -18,6 +18,7 @@ import RoundInsightsModal from "./components/RoundInsightsModal";
 import StudentRoundsPopup from "./components/StudentRoundsPopup";
 import AddCompanyForm from "./components/AddCompanyForm";
 import StudentSelectionModal from "./components/StudentSelectionModal";
+import Loader from "../../components/Loader";
 
 // Register ChartJS components
 ChartJS.register(
@@ -50,6 +51,7 @@ const ManageCompanies = () => {
   const [selectedAnalyticsCompany, setSelectedAnalyticsCompany] = useState(null);
   const [students, setStudents] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isDataLoading, setIsDataLoading] = useState(false);
 
 
 
@@ -178,6 +180,7 @@ const ManageCompanies = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
     const form = e.target;
     const newCompany = {
       name: form[0].value,
@@ -193,7 +196,7 @@ const ManageCompanies = () => {
       rounds: form[10].value,
     };
     setFormData(newCompany);
-   
+
     try {
       const studentsRes = await axios.get(
         `https://vcetplacement.onrender.com/api/student/getStudentInfo?year=${year}`
@@ -208,14 +211,14 @@ const ManageCompanies = () => {
 
             const twelfthValid = !isNaN(twelfth) && twelfth >= parseFloat(newCompany.twelfth);
             const diplomaValid = !isNaN(diploma) && diploma >= parseFloat(newCompany.diploma);
-            
+
             // If historyofArrears or currentArrears is empty/null, don't filter by it (allow all students)
-            const historyArrearCheck = newCompany.historyofArrears === '' || newCompany.historyofArrears === null 
-              ? true 
+            const historyArrearCheck = newCompany.historyofArrears === '' || newCompany.historyofArrears === null
+              ? true
               : hoa <= parseFloat(newCompany.historyofArrears);
-            
-            const currentArrearCheck = newCompany.currentArrears === '' || newCompany.currentArrears === null 
-              ? true 
+
+            const currentArrearCheck = newCompany.currentArrears === '' || newCompany.currentArrears === null
+              ? true
               : arrear <= parseFloat(newCompany.currentArrears);
 
             return (
@@ -230,11 +233,14 @@ const ManageCompanies = () => {
       setShowStudentSelect(true);
     } catch (error) {
       console.error("Error fetching students:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
     const fetchUserData = async () => {
+      setIsDataLoading(true);
       try {
         const res = await axios.get(
           `https://vcetplacement.onrender.com/api/company/ShowAllcompanies?year=${year}`
@@ -243,6 +249,8 @@ const ManageCompanies = () => {
         console.log("User data fetched:", res.data);
       } catch (error) {
         console.error("Error fetching user data:", error);
+      } finally {
+        setIsDataLoading(false);
       }
     };
     fetchUserData();
@@ -501,6 +509,7 @@ const ManageCompanies = () => {
 
   useEffect(() => {
     const fetchData = async () => {
+      setIsDataLoading(true);
       try {
         const res = await axios.get(
           `https://vcetplacement.onrender.com/api/student/getStudentInfo?year=${year}`
@@ -508,6 +517,8 @@ const ManageCompanies = () => {
         setStudentInformationDetail(res.data);
       } catch (e) {
         console.log(e);
+      } finally {
+        setIsDataLoading(false);
       }
     };
 
@@ -581,6 +592,7 @@ const ManageCompanies = () => {
   };
   const handleCompanyClick = async (company) => {
     setSelectedCompany(company);
+    setIsLoading(true);
 
     try {
       const year =
@@ -627,6 +639,8 @@ const ManageCompanies = () => {
         closeOnClick: true,
         type: "error",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
   const handleRoundStatusChange = (studentId, round, currentStatus) => {
@@ -938,6 +952,7 @@ const ManageCompanies = () => {
         setReloadTrigger={setReloadTrigger}
         setShowForm={setShowForm}
       />
+      {(isLoading || isDataLoading) && <Loader message="Loading data..." />}
     </>
   );
 };

@@ -6,6 +6,7 @@ import CSE from "./assets/CSE LOGO.jpg";
 import { FaUser, FaLock, FaUserShield } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 import "./styles/Dashboard.css";
+import Loader from './components/Loader';
 
 function Dashboard() {
   useEffect(() => {
@@ -13,19 +14,30 @@ function Dashboard() {
   }, []);
 
   const [isStudentLogin, setIsStudentLogin] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  
 
   const handleAdminLogin = (e) => {
     e.preventDefault();
+    setIsLoading(true);
     const adminId = e.target.elements.adminId.value;
     const password = e.target.elements.password.value;
-    
-    // Check for specific admin credentials
-    if ((adminId === "bmk" || adminId === "BMK") && password === "CSE2264") {
-        navigate("/AdminDashboard");
+
+    // Check against hardcoded credentials
+    const admins = [
+      { id: "BMK", password: "CSE2264" },
+      { id: "GVC", password: "CSE0907" }
+    ];
+    const admin = admins.find(admin => admin.id === adminId && admin.password === password);
+
+    if (admin) {
+      navigate("/AdminDashboard");
     } else {
-        alert("Invalid Admin ID or Password");
+      alert('Invalid Admin ID or Password');
     }
+
+    setIsLoading(false);
   };
 
   return (
@@ -181,6 +193,7 @@ function Dashboard() {
           </div>
         </div>
       </div>
+      {isLoading && <Loader message="Logging in..." />}
     </>
   );
 }

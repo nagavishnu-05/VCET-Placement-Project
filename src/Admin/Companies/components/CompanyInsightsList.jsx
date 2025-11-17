@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import { FaEye, FaFileExcel } from "react-icons/fa";
 import axios from "axios";
 import * as XLSX from "xlsx";
+import Loader from "../../../components/Loader";
 
 const CompanyInsightsList = ({
   companies,
@@ -10,7 +11,9 @@ const CompanyInsightsList = ({
   setShowCompanyAnalytics,
   year
 }) => {
+  const [isLoading, setIsLoading] = useState(false);
   const handleExportRoundDetails = async (company) => {
+    setIsLoading(true);
     try {
       const res = await axios.get(`https://vcetplacement.onrender.com/api/shortlist/getshortlist/${year}/${company._id}`);
       const shortlisted = res.data || [];
@@ -51,6 +54,8 @@ const CompanyInsightsList = ({
     } catch (err) {
       console.error("Failed to export round details:", err);
       alert("Failed to export round details. Check console for details.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -116,6 +121,7 @@ const CompanyInsightsList = ({
           </div>
         );
       })}
+      {isLoading && <Loader message="Exporting data..." />}
     </div>
   );
 };

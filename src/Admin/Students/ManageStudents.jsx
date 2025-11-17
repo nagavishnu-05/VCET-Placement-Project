@@ -10,6 +10,7 @@ import CollegeHeader from "../Companies/components/CollegeHeader";
 import StudentNavbar from "./components/StudentNavbar";
 import StudentTable from "./components/StudentTable";
 import StudentRoundsModal from "./components/StudentRoundsModal";
+import Loader from "../../components/Loader";
 
 import "../../styles/ManageStudents.css";
 
@@ -28,9 +29,10 @@ const ManageStudents = () => {
   const [selectedOffers, setSelectedOffers] = useState({});
   const [studentRoles, setStudentRoles] = useState({});
   const [studentView, setStudentView] = useState({
-              studentId: "",
-              companies: [],
-            });
+               studentId: "",
+               companies: [],
+             });
+  const [isLoading, setIsLoading] = useState(false);
   const handleLogout = () => {
     window.location.href = "/";
   };
@@ -48,6 +50,7 @@ const ManageStudents = () => {
 
   useEffect(() => {
     const fetchData = async () => {
+      setIsLoading(true);
       try {
         const res = await axios.get(
           `https://vcetplacement.onrender.com/api/student/getStudentInfo?year=${year}`
@@ -55,6 +58,8 @@ const ManageStudents = () => {
         setStudentInformationDetail(res.data);
       } catch (e) {
         console.log(e);
+      } finally {
+        setIsLoading(false);
       }
     };
     fetchData();
@@ -131,6 +136,7 @@ const ManageStudents = () => {
 
   useEffect(() => {
   const loadData = async () => {
+    setIsLoading(true);
     try {
       const res = await axios.get(
         `https://vcetplacement.onrender.com/api/company/ShowAllcompanies?year=${year}`
@@ -139,6 +145,8 @@ const ManageStudents = () => {
       console.log("✅ Companies fetched:", res.data);
     } catch (error) {
       console.error("❌ Error fetching companies:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -172,6 +180,7 @@ const handleViewRounds = async (student) => {
     return;
   }
 
+  setIsLoading(true);
   try {
     const res = await axios.get(
       `https://vcetplacement.onrender.com/api/shortlist/${student._id}/companies-rounds?year=${year}`
@@ -202,6 +211,8 @@ const handleViewRounds = async (student) => {
   } catch (err) {
     console.error("Error fetching student rounds:", err);
     toast.error("Failed to load student rounds. Please try again.");
+  } finally {
+    setIsLoading(false);
   }
 };
 
@@ -386,6 +397,7 @@ const getSelectedCompanies = (companiesData = []) => {
           studentView = {studentView}
         />
       </div>
+      {isLoading && <Loader message="Loading data..." />}
     </div>
   );
 };

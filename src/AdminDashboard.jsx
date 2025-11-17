@@ -14,6 +14,7 @@ import "./styles/AdminDashboard.css";
 import axios from "axios";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import Loader from './components/Loader';
 
 const AdminDashboard = () => {
   useEffect(() => {
@@ -26,15 +27,19 @@ const AdminDashboard = () => {
   const [endYear, setEndYear] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [studentDetails, setStudentsDetails] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const [databases, setDatabases] = useState([]);
 
   const fetchDB = async () => {
+      setIsLoading(true);
       try {
         const res = await axios.get("https://vcetplacement.onrender.com/databases");
         setDatabases(res.data);
       } catch (err) {
         console.error("Error fetching databases:", err);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -105,6 +110,7 @@ const AdminDashboard = () => {
   };
 
   const handleBatchSelect = async (batch) => {
+    setIsLoading(true);
     try {
       const res = await axios.get(
         `https://vcetplacement.onrender.com/getdbprevious?year=${batch.endYear}`
@@ -115,6 +121,8 @@ const AdminDashboard = () => {
       navigate("/admin/companies", { state: { batch } });
     } catch (e) {
       console.log(e);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -250,6 +258,7 @@ const AdminDashboard = () => {
           </div>
         </div>
       </div>
+      {isLoading && <Loader message="Loading data..." />}
     </div>
   );
 };
