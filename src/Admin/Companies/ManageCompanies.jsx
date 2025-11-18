@@ -84,6 +84,25 @@ const ManageCompanies = () => {
     console.log("🔔 totalPlacedStudents state changed:", totalPlacedStudents);
   }, [totalPlacedStudents]);
 
+  // Save selectedRoles to localStorage whenever it changes
+  useEffect(() => {
+    if (selectedCompany && Object.keys(selectedRoles).length > 0) {
+      const existing = localStorage.getItem("studentRoles");
+      let rolesMap = {};
+      if (existing) {
+        try {
+          rolesMap = JSON.parse(existing);
+        } catch (e) {
+          console.error("Error parsing existing roles:", e);
+        }
+      }
+      Object.entries(selectedRoles).forEach(([studentId, role]) => {
+        rolesMap[`${studentId}_${selectedCompany._id}`] = role;
+      });
+      localStorage.setItem("studentRoles", JSON.stringify(rolesMap));
+    }
+  }, [selectedRoles, selectedCompany]);
+
   const fetchCompanyRoundStats = useCallback(async (companyId) => {
     console.log(`Fetching stats for company ${companyId}`); // Debug log
     try {
@@ -434,22 +453,61 @@ const ManageCompanies = () => {
         }
       }
 
-      // Get unique students with their names and company info
-      const uniqueStudents = new Map();
+      // Load roles from localStorage
+      const storedRoles = localStorage.getItem("studentRoles");
+      let rolesMap = {};
+      if (storedRoles) {
+        try {
+          rolesMap = JSON.parse(storedRoles);
+        } catch (e) {
+          console.error("Error parsing roles from localStorage:", e);
+        }
+      }
+
+      // Group students by role
+      const roleGroups = {
+        "Placed": [],
+        "Internship": [],
+        "Incubation": [],
+        "Type": []
+      };
+
       finalSelectedStudents.forEach(student => {
         const studentInfo = studentDetails.find(s => s._id === student.studentId);
         const companyInfo = companies.find(c => c._id === student.companyId);
-        if (studentInfo && !uniqueStudents.has(student.studentId)) {
-          uniqueStudents.set(student.studentId, {
+        if (studentInfo) {
+          const roleKey = `${student.studentId}_${student.companyId}`;
+          const role = rolesMap[roleKey] || "Type"; // Default to "Type" if no role
+          const studentData = {
             name: studentInfo.studentName,
             company: companyInfo?.name || 'Unknown Company'
-          });
+          };
+          if (role === "Placed" || role === "Full-time" || role === "Role Offered") {
+            roleGroups["Placed"].push(studentData);
+          } else if (role === "Internship") {
+            roleGroups["Internship"].push(studentData);
+          } else if (role === "Incubation") {
+            roleGroups["Incubation"].push(studentData);
+          } else {
+            roleGroups["Type"].push(studentData);
+          }
         }
       });
 
-      const placedStudentsList = Array.from(uniqueStudents.values());
+      // Remove duplicates within each group
+      Object.keys(roleGroups).forEach(role => {
+        const unique = new Map();
+        roleGroups[role].forEach(student => {
+          if (!unique.has(student.name)) {
+            unique.set(student.name, student);
+          }
+        });
+        roleGroups[role] = Array.from(unique.values());
+      });
 
-      if (placedStudentsList.length === 0) {
+      const totalPlaced = Object.values(roleGroups).reduce((sum, group) => sum + group.length, 0);
+
+      if (totalPlaced === 0) {
         return `${greeting}\n\nSo far placed students list\n\nNo placed students yet.`;
       }
 
@@ -461,16 +519,25 @@ const ManageCompanies = () => {
       const totalStudents = studentDetails.length;
       const placementInterested = Math.round(totalStudents * 0.93); // Approximate based on example
       const placementEligible = Math.round(totalStudents * 0.81); // Approximate based on example
-      const placedCount = placedStudentsList.length;
+      const placedCount = totalPlaced;
       const yetToPlace = placementEligible - placedCount;
       const placementPercentage = ((placedCount / placementEligible) * 100).toFixed(2);
 
       let message = `${greeting}\n\nSo far placed students list\n\n`;
-      placedStudentsList.forEach((student, index) => {
-        message += `${index + 1}. ${student.name} - ${student.company}\n`;
+
+      // Add each role section
+      Object.keys(roleGroups).forEach(role => {
+        const students = roleGroups[role];
+        if (students.length > 0) {
+          message += `${role}:\n`;
+          students.forEach((student, index) => {
+            message += `${index + 1}. ${student.name} - ${student.company}\n`;
+          });
+          message += `\n`;
+        }
       });
 
-      message += `\nPlacement statistics\n${batch}\n\n`;
+      message += `Placement statistics\n${batch}\n\n`;
       message += `Total no of Students ${totalStudents}\n`;
       message += `No of placement interested ${placementInterested}\n`;
       message += `Placement Eligible ${placementEligible}\n`;
@@ -628,6 +695,24 @@ const ManageCompanies = () => {
 
       // 🔹 Just replace the students list for that company
       setStudents(newStudents);
+
+      // Load roles from localStorage
+      const storedRoles = localStorage.getItem("studentRoles");
+      if (storedRoles) {
+        try {
+          const rolesMap = JSON.parse(storedRoles);
+          const loadedRoles = {};
+          newStudents.forEach(student => {
+            const key = `${student.id}_${company._id}`;
+            if (rolesMap[key]) {
+              loadedRoles[student.id] = rolesMap[key];
+            }
+          });
+          setSelectedRoles(loadedRoles);
+        } catch (e) {
+          console.error("Error loading roles from localStorage:", e);
+        }
+      }
 
       setShowStudentPopup(true);
     } catch (error) {
