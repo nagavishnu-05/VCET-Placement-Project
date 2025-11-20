@@ -6,7 +6,6 @@ import CSE from "./assets/CSE LOGO.jpg";
 import { FaUser, FaLock, FaUserShield } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 import "./styles/Dashboard.css";
-import Loader from './components/Loader';
 
 function Dashboard() {
   useEffect(() => {
@@ -14,30 +13,29 @@ function Dashboard() {
   }, []);
 
   const [isStudentLogin, setIsStudentLogin] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   
 
-  const handleAdminLogin = (e) => {
+  const handleAdminLogin = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
     const adminId = e.target.elements.adminId.value;
     const password = e.target.elements.password.value;
+    try {
+      const res = await fetch('https://vcetplacement.onrender.com/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminId, password })
+      });
 
-    // Check against hardcoded credentials
-    const admins = [
-      { id: "BMK", password: "CSE2264" },
-      { id: "GVC", password: "CSE0907" }
-    ];
-    const admin = admins.find(admin => admin.id === adminId && admin.password === password);
-
-    if (admin) {
-      navigate("/AdminDashboard");
-    } else {
-      alert('Invalid Admin ID or Password');
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data?.ok) {
+        navigate("/AdminDashboard");
+      } else {
+        alert(data?.error || 'Invalid Admin ID or Password');
+      }
+    } catch (err) {
+      alert('Unable to reach server. Please try again.');
     }
-
-    setIsLoading(false);
   };
 
   return (
@@ -193,9 +191,8 @@ function Dashboard() {
           </div>
         </div>
       </div>
-      {isLoading && <Loader message="Logging in..." />}
     </>
   );
 }
 
-export default Dashboard; 
+export default Dashboard;

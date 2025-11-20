@@ -1,5 +1,5 @@
-import React from "react";
-import { FaTimes } from "react-icons/fa";
+import React, { useState } from "react";
+import { FaTimes, FaPencilAlt } from "react-icons/fa";
 
 const StudentRoundsModal = ({
   showRoundDetails,
@@ -11,6 +11,9 @@ const StudentRoundsModal = ({
   studentRoles = {},
   studentView = null,
 }) => {
+  // Local state for toggling between Text View and Dropdown
+  const [isEditing, setIsEditing] = useState(false);
+
   if (!showRoundDetails || !studentView || !studentView.studentId) {
     return null;
   }
@@ -19,16 +22,18 @@ const StudentRoundsModal = ({
     if (!Array.isArray(companiesData)) return [];
 
     return companiesData
-      .filter(companyData => companyData && companyData.companyId)
+      .filter((companyData) => companyData && companyData.companyId)
       .map((companyData) => {
-        const company = companies.find(comp => comp && comp._id === companyData.companyId);
+        const company = companies.find(
+          (comp) => comp && comp._id === companyData.companyId
+        );
         if (!company || !company.name) return null;
-        
+
         const finalResult = companyData.finalResult;
         if (finalResult === true || finalResult === "Selected") {
-          return { 
-            companyId: companyData.companyId, 
-            companyName: company.name 
+          return {
+            companyId: companyData.companyId,
+            companyName: company.name,
           };
         }
         return null;
@@ -36,40 +41,102 @@ const StudentRoundsModal = ({
       .filter(Boolean);
   };
 
+  // Helper to find the display name of the currently selected offer
+  const currentSelectedCompanyId = selectedOffers[studentView.studentId];
+  const currentSelectedCompany = companies.find(
+    (c) => c._id === currentSelectedCompanyId
+  );
+  const displayOfferName = currentSelectedCompany
+    ? currentSelectedCompany.name
+    : "None Selected";
+
   return (
     <div className="student-rounds-modal">
       <div className="student-rounds-content">
         <div className="student-rounds-header">
           <h2>
-            {studentView.studentName || 'N/A'} 
-            ({studentView.studentRegisterNumber || 'N/A'}) - Company Rounds
+            {studentView.studentName || "N/A"}{" "}
+            ({studentView.studentRegisterNumber || "N/A"}) - Company Rounds
           </h2>
 
           <div className="student-rounds-header-actions">
             {getSelectedCompanies(studentView.companies).length > 0 && (
-              <div className="offer-selection-container">
-                <label htmlFor="offer-select" className="offer-label">
+              <div
+                className="offer-selection-container"
+                style={{ display: "flex", alignItems: "center", gap: "10px" }}
+              >
+                <label
+                  htmlFor="offer-select"
+                  className="offer-label"
+                  style={{ marginBottom: 0 }}
+                >
                   Selected Offer:
                 </label>
-                <select
-                  id="offer-select"
-                  className="offer-dropdown"
-                  value={selectedOffers[studentView.studentId] || ""}
-                  onChange={(e) => handleOfferSelection(studentView.studentId, e.target.value)}
-                >
-                  <option value="">Select Company</option>
-                  {getSelectedCompanies(studentView.companies).map(({ companyId, companyName }) => (
-                    <option key={companyId} value={companyId}>
-                      {companyName}
-                    </option>
-                  ))}
-                </select>
+
+                {isEditing ? (
+                  /* --- EDIT MODE: DROPDOWN ONLY (Auto-Save on Change) --- */
+                  <select
+                    id="offer-select"
+                    className="offer-dropdown"
+                    /* Bind value directly to the parent state */
+                    value={selectedOffers[studentView.studentId] || ""}
+                    onChange={(e) => {
+                      const newValue = e.target.value;
+                      // Trigger update immediately when user picks an option
+                      handleOfferSelection(studentView.studentId, newValue);
+                      // Switch back to view mode
+                      setIsEditing(false);
+                    }}
+                    /* Add autoFocus so user can type to search immediately if needed */
+                    autoFocus
+                    onBlur={() => setIsEditing(false)} // Optional: Close if they click away without selecting
+                    style={{ padding: "5px", borderRadius: "4px" }}
+                  >
+                    <option value="">Select Company</option>
+                    {getSelectedCompanies(studentView.companies).map(
+                      ({ companyId, companyName }) => (
+                        <option key={companyId} value={companyId}>
+                          {companyName}
+                        </option>
+                      )
+                    )}
+                  </select>
+                ) : (
+                  /* --- VIEW MODE: TEXT + PENCIL --- */
+                  <>
+                    <span
+                      style={{
+                        fontWeight: "bold",
+                        marginRight: "5px",
+                        color: "#374151",
+                      }}
+                    >
+                      {displayOfferName}
+                    </span>
+                    <button
+                      onClick={() => setIsEditing(true)}
+                      style={{
+                        background: "transparent",
+                        color: "#3b82f6",
+                        border: "none",
+                        cursor: "pointer",
+                        fontSize: "1.1rem",
+                        display: "flex",
+                        alignItems: "center",
+                      }}
+                      title="Edit Offer"
+                    >
+                      <FaPencilAlt />
+                    </button>
+                  </>
+                )}
               </div>
             )}
 
             <button
               className="student-rounds-close"
               onClick={() => setShowRoundDetails(false)}
+              style={{ marginLeft: "15px" }}
             >
               <FaTimes />
             </button>
@@ -77,11 +144,14 @@ const StudentRoundsModal = ({
         </div>
 
         <div className="student-rounds-body">
-          {Array.isArray(studentView.companies) && studentView.companies.length > 0 ? (
+          {Array.isArray(studentView.companies) &&
+          studentView.companies.length > 0 ? (
             <div className="company-rounds-grid">
               {studentView.companies.map((companyData) => {
                 if (!companyData || !companyData.companyId) return null;
-                const company = companies.find((c) => c && c._id === companyData.companyId);
+                const company = companies.find(
+                  (c) => c && c._id === companyData.companyId
+                );
                 if (!company) return null;
 
                 const companyId = companyData.companyId;
@@ -100,7 +170,9 @@ const StudentRoundsModal = ({
                       <h3 className="company-name">{company.name}</h3>
 
                       {finalResult === true &&
-                        studentRoles[`${studentView.studentId}_${companyId}`] && (
+                        studentRoles[
+                          `${studentView.studentId}_${companyId}`
+                        ] && (
                           <div
                             className="role-badge"
                             style={{
@@ -112,7 +184,11 @@ const StudentRoundsModal = ({
                               fontWeight: "600",
                             }}
                           >
-                            {studentRoles[`${studentView.studentId}_${companyId}`]}
+                            {
+                              studentRoles[
+                                `${studentView.studentId}_${companyId}`
+                              ]
+                            }
                           </div>
                         )}
                     </div>
@@ -167,7 +243,9 @@ const StudentRoundsModal = ({
               })}
             </div>
           ) : (
-            <p className="no-rounds-message">No company rounds data available</p>
+            <p className="no-rounds-message">
+              No company rounds data available
+            </p>
           )}
         </div>
       </div>
