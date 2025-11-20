@@ -49,6 +49,22 @@ const ManageStudents = () => {
     }
   }, []);
 
+  // Save selectedOffers to localStorage whenever it changes
+  useEffect(() => {
+    const saved = localStorage.getItem("selectedOffers");
+    if (saved) {
+      try {
+        setSelectedOffers(JSON.parse(saved));
+      } catch (e) {
+        console.log("Error loading selectedOffers from localStorage:", e);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("selectedOffers", JSON.stringify(selectedOffers));
+  }, [selectedOffers]);
+
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
@@ -131,24 +147,16 @@ const ManageStudents = () => {
 
       setStudentView(combinedData);
 
-      try {
-        const finalCompanyRes = await axios.get(
-          `https://vcetplacement.onrender.com/api/finalcompany/getstudent-individual-final-company/${student._id}?year=${year}`
-        );
+      // Calculate selected companies from studentView
+      const selectedCompanies = getSelectedCompanies(combinedData.companies);
+      const selectedCompanyIds = selectedCompanies.map(c => c.companyId);
 
-        if (finalCompanyRes.data && finalCompanyRes.data.companyId) {
-          setSelectedOffers((prev) => ({
-            ...prev,
-            [student._id]: finalCompanyRes.data.companyId._id,
-          }));
-        } else {
-          setSelectedOffers((prev) => ({
-            ...prev,
-            [student._id]: "",
-          }));
-        }
-      } catch (finalErr) {
-        console.log("No final company set yet or error fetching:", finalErr);
+      if (selectedCompanyIds.length === 1) {
+        setSelectedOffers((prev) => ({
+          ...prev,
+          [student._id]: selectedCompanyIds[0],
+        }));
+      } else {
         setSelectedOffers((prev) => ({
           ...prev,
           [student._id]: "",
@@ -193,6 +201,11 @@ const ManageStudents = () => {
       const company = companies.find((c) => c._id === companyId);
       const companyName = company ? company.name : "the company";
 
+      setSelectedOffers((prev) => ({
+        ...prev,
+        [studentId]: companyId,
+      }));
+
       await axios.post(
         `https://vcetplacement.onrender.com/api/finalcompany/set-company-as-final?year=${year}`,
         {
@@ -201,12 +214,7 @@ const ManageStudents = () => {
         }
       );
 
-      setSelectedOffers((prev) => ({
-        ...prev,
-        [studentId]: companyId,
-      }));
-
-      toast(`Offer Updated to ${companyName}`, {
+      toast(`Offer Selected: ${companyName}`, {
         position: "top-right",
         autoClose: 3000,
         hideProgressBar: false,
@@ -217,6 +225,11 @@ const ManageStudents = () => {
       });
     } catch (error) {
       console.error("Error saving offer selection:", error);
+      // Revert on error
+      setSelectedOffers((prev) => ({
+        ...prev,
+        [studentId]: selectedOffers[studentId] || "",
+      }));
       toast("Failed to save offer selection.", {
         position: "top-right",
         autoClose: 3000,

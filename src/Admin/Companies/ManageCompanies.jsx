@@ -464,48 +464,29 @@ const ManageCompanies = () => {
         }
       }
 
-      // Group students by role
-      const roleGroups = {
-        "Placed": [],
-        "Internship": [],
-        "Incubation": [],
-        "Type": []
-      };
+      // List all placements
+      const placements = [];
 
       finalSelectedStudents.forEach(student => {
         const studentInfo = studentDetails.find(s => s._id === student.studentId);
         const companyInfo = companies.find(c => c._id === student.companyId);
-        if (studentInfo) {
+        if (studentInfo && companyInfo) {
           const roleKey = `${student.studentId}_${student.companyId}`;
-          const role = rolesMap[roleKey] || "Type"; // Default to "Type" if no role
-          const studentData = {
+          const role = rolesMap[roleKey] || "Placed"; // Default to "Placed" if no role
+          placements.push({
             name: studentInfo.studentName,
-            company: companyInfo?.name || 'Unknown Company'
-          };
-          if (role === "Placed" || role === "Full-time" || role === "Role Offered") {
-            roleGroups["Placed"].push(studentData);
-          } else if (role === "Internship") {
-            roleGroups["Internship"].push(studentData);
-          } else if (role === "Incubation") {
-            roleGroups["Incubation"].push(studentData);
-          } else {
-            roleGroups["Type"].push(studentData);
-          }
+            company: companyInfo.name,
+            role: role
+          });
         }
       });
 
-      // Remove duplicates within each group
-      Object.keys(roleGroups).forEach(role => {
-        const unique = new Map();
-        roleGroups[role].forEach(student => {
-          if (!unique.has(student.name)) {
-            unique.set(student.name, student);
-          }
-        });
-        roleGroups[role] = Array.from(unique.values());
-      });
+      // Remove duplicates (same student-company-role)
+      const uniquePlacements = placements.filter((placement, index, self) =>
+        index === self.findIndex(p => p.name === placement.name && p.company === placement.company && p.role === placement.role)
+      );
 
-      const totalPlaced = Object.values(roleGroups).reduce((sum, group) => sum + group.length, 0);
+      const totalPlaced = uniquePlacements.length;
 
       if (totalPlaced === 0) {
         return `${greeting}\n\nSo far placed students list\n\nNo placed students yet.`;
@@ -525,17 +506,11 @@ const ManageCompanies = () => {
 
       let message = `${greeting}\n\nSo far placed students list\n\n`;
 
-      // Add each role section
-      Object.keys(roleGroups).forEach(role => {
-        const students = roleGroups[role];
-        if (students.length > 0) {
-          message += `${role}:\n`;
-          students.forEach((student, index) => {
-            message += `${index + 1}. ${student.name} - ${student.company}\n`;
-          });
-          message += `\n`;
-        }
+      // List all placements
+      uniquePlacements.forEach((placement, index) => {
+        message += `${index + 1}. ${placement.name} - ${placement.company} (${placement.role})\n`;
       });
+      message += `\n`;
 
       message += `Placement statistics\n${batch}\n\n`;
       message += `Total no of Students ${totalStudents}\n`;

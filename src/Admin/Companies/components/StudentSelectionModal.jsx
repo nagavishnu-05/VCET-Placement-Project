@@ -51,8 +51,38 @@ const StudentSelectionModal = ({
             studentIds: selectedStudents
           }
         );
-        setSelectedStudents(null);
         console.log("Shortlist added:", shortlistRes.data);
+
+        // Initialize rounds with default false (rejected) for all rounds
+        const totalRounds = formData.rounds;
+        const updates = selectedStudents.map(studentId => {
+          const roundBooleanMap = {};
+          for (let i = 1; i <= totalRounds; i++) {
+            roundBooleanMap[`round${i}`] = false;
+          }
+          return {
+            studentId: studentId,
+            companyId: companyId,
+            rounds: roundBooleanMap,
+            finalResult: false,
+            role: null,
+          };
+        });
+
+        try {
+          await axios.put(
+            "https://vcetplacement.onrender.com/api/shortlist/update-rounds",
+            {
+              year,
+              updates,
+            }
+          );
+          console.log("Rounds initialized successfully");
+        } catch (updateError) {
+          console.error("Error initializing rounds:", updateError);
+        }
+
+        setSelectedStudents(null);
       } catch (error) {
         console.error("Shortlist Error: ", error);
       }

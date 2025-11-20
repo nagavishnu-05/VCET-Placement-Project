@@ -5,6 +5,7 @@ import { disableDevTools } from "./utils/disableDevTools";
 import CSE from "./assets/CSE LOGO.jpg";
 import { FaUser, FaLock, FaUserShield } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
+import Loader from "./components/Loader";
 import "./styles/Dashboard.css";
 
 function Dashboard() {
@@ -13,11 +14,13 @@ function Dashboard() {
   }, []);
 
   const [isStudentLogin, setIsStudentLogin] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   
 
   const handleAdminLogin = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
     const adminId = e.target.elements.adminId.value;
     const password = e.target.elements.password.value;
     try {
@@ -33,8 +36,10 @@ function Dashboard() {
       } else {
         alert(data?.error || 'Invalid Admin ID or Password');
       }
-    } catch (err) {
+    } catch (error) {
       alert('Unable to reach server. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -191,6 +196,7 @@ function Dashboard() {
           </div>
         </div>
       </div>
+      {isLoading && <Loader message="Logging in..." />}
     </>
   );
 }

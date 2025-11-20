@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FaTimes, FaPencilAlt } from "react-icons/fa";
 
 const StudentRoundsModal = ({
@@ -14,10 +14,8 @@ const StudentRoundsModal = ({
   // Local state for toggling between Text View and Dropdown
   const [isEditing, setIsEditing] = useState(false);
 
-  if (!showRoundDetails || !studentView || !studentView.studentId) {
-    return null;
-  }
-
+  // Helper function to filter eligible companies
+  // Defined before useEffect so it can be used inside it
   const getSelectedCompanies = (companiesData = []) => {
     if (!Array.isArray(companiesData)) return [];
 
@@ -40,6 +38,33 @@ const StudentRoundsModal = ({
       })
       .filter(Boolean);
   };
+
+  // --- EFFECT: Auto-Select if only 1 company exists ---
+  useEffect(() => {
+    if (showRoundDetails && studentView && studentView.studentId) {
+      const eligibleCompanies = getSelectedCompanies(studentView.companies);
+
+      // 1. Check if there is exactly ONE eligible company
+      if (eligibleCompanies.length === 1) {
+        const singleCompanyId = eligibleCompanies[0].companyId;
+        const currentSavedOffer = selectedOffers[studentView.studentId];
+
+        // 2. If it's not already saved in the DB/State, trigger the update
+        if (currentSavedOffer !== singleCompanyId) {
+          console.log("Only one option found. Auto-selecting:", eligibleCompanies[0].companyName);
+          handleOfferSelection(studentView.studentId, singleCompanyId);
+        }
+      }
+      
+      // Always ensure we start in 'View' mode when opening
+      setIsEditing(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showRoundDetails, studentView, selectedOffers]); // Run when these change
+
+  if (!showRoundDetails || !studentView || !studentView.studentId) {
+    return null;
+  }
 
   // Helper to find the display name of the currently selected offer
   const currentSelectedCompanyId = selectedOffers[studentView.studentId];
