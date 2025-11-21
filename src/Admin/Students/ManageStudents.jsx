@@ -147,20 +147,54 @@ const ManageStudents = () => {
 
       setStudentView(combinedData);
 
-      // Calculate selected companies from studentView
-      const selectedCompanies = getSelectedCompanies(combinedData.companies);
-      const selectedCompanyIds = selectedCompanies.map(c => c.companyId);
+      // Fetch the selected offer from database
+      try {
+        console.log("🔍 Fetching selected offer for student:", student._id);
+        const selectedOfferRes = await axios.get(
+          `https://vcetplacement.onrender.com/api/finalcompany/get-final-company-for-a-student?year=${year}`
+        );
 
-      if (selectedCompanyIds.length === 1) {
-        setSelectedOffers((prev) => ({
-          ...prev,
-          [student._id]: selectedCompanyIds[0],
-        }));
-      } else {
-        setSelectedOffers((prev) => ({
-          ...prev,
-          [student._id]: "",
-        }));
+        console.log("📊 Selected offer response:", selectedOfferRes.data);
+
+        if (selectedOfferRes.data && Array.isArray(selectedOfferRes.data)) {
+          // Find the entry for the current student
+          const studentFinalCompany = selectedOfferRes.data.find(
+            (item) => item.studentId && item.studentId._id === student._id
+          );
+
+          if (studentFinalCompany && studentFinalCompany.companyId && studentFinalCompany.companyId._id) {
+            const companyId = studentFinalCompany.companyId._id;
+            console.log("✅ Found selected company in DB:", companyId);
+            setSelectedOffers((prev) => ({
+              ...prev,
+              [student._id]: companyId,
+            }));
+          } else {
+            console.log("⚠️ No final company found for this student, using fallback logic");
+            throw new Error("No final company for student");
+          }
+        } else {
+          throw new Error("Unexpected response format");
+        }
+      } catch (err) {
+        console.warn("Could not fetch selected offer from DB, using fallback:", err.message);
+        // Fallback to checking selected companies
+        const selectedCompanies = getSelectedCompanies(combinedData.companies);
+        const selectedCompanyIds = selectedCompanies.map(c => c.companyId);
+
+        if (selectedCompanyIds.length === 1) {
+          console.log("✅ Auto-selecting single eligible company:", selectedCompanyIds[0]);
+          setSelectedOffers((prev) => ({
+            ...prev,
+            [student._id]: selectedCompanyIds[0],
+          }));
+        } else {
+          console.log("⚠️ Multiple eligible companies, no selection yet");
+          setSelectedOffers((prev) => ({
+            ...prev,
+            [student._id]: "",
+          }));
+        }
       }
 
       setShowRoundDetails(true);
