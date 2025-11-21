@@ -7,15 +7,13 @@ const StudentRoundsModal = ({
   companies = [],
   selectedOffers = {},
   handleOfferSelection = () => {},
-  calculateFinalStatus = () => {},
   studentRoles = {},
   studentView = null,
 }) => {
   // Local state for toggling between Text View and Dropdown
   const [isEditing, setIsEditing] = useState(false);
 
-  // Helper function to filter eligible companies
-  // Defined before useEffect so it can be used inside it
+  // --- HELPER: Identify companies where the student is 'Selected' ---
   const getSelectedCompanies = (companiesData = []) => {
     if (!Array.isArray(companiesData)) return [];
 
@@ -27,6 +25,7 @@ const StudentRoundsModal = ({
         );
         if (!company || !company.name) return null;
 
+        // Check if the Final Status is strictly true or "Selected"
         const finalResult = companyData.finalResult;
         if (finalResult === true || finalResult === "Selected") {
           return {
@@ -39,34 +38,42 @@ const StudentRoundsModal = ({
       .filter(Boolean);
   };
 
-  // --- EFFECT: Auto-Select if only 1 company exists ---
+  // --- EFFECT: Auto-Update DB/Dropdown when Rounds Update ---
   useEffect(() => {
+    // Ensure the modal is open and valid student data exists
     if (showRoundDetails && studentView && studentView.studentId) {
+      
+      // 1. Calculate eligible companies based on the LATEST studentView data
       const eligibleCompanies = getSelectedCompanies(studentView.companies);
 
-      // 1. Check if there is exactly ONE eligible company
+      // 2. Logic: If there is EXACTLY ONE eligible company
       if (eligibleCompanies.length === 1) {
         const singleCompanyId = eligibleCompanies[0].companyId;
+        
+        // 3. Get the currently saved offer from the DB/State
         const currentSavedOffer = selectedOffers[studentView.studentId];
 
-        // 2. If it's not already saved in the DB/State, trigger the update
+        // 4. If the saved offer is NOT this company, update it immediately.
         if (currentSavedOffer !== singleCompanyId) {
-          console.log("Only one option found. Auto-selecting:", eligibleCompanies[0].companyName);
+          console.log(
+            `Final status updated to Selected for ${eligibleCompanies[0].companyName}. Auto-saving to DB.`
+          );
           handleOfferSelection(studentView.studentId, singleCompanyId);
         }
       }
       
-      // Always ensure we start in 'View' mode when opening
+      // Always ensure we are in view mode when data refreshes
       setIsEditing(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showRoundDetails, studentView, selectedOffers]); // Run when these change
+  }, [showRoundDetails, studentView, selectedOffers]); 
+  // ^ Dependency on 'studentView' ensures this runs immediately when rounds/final status change.
 
   if (!showRoundDetails || !studentView || !studentView.studentId) {
     return null;
   }
 
-  // Helper to find the display name of the currently selected offer
+  // --- DISPLAY LOGIC ---
   const currentSelectedCompanyId = selectedOffers[studentView.studentId];
   const currentSelectedCompany = companies.find(
     (c) => c._id === currentSelectedCompanyId
@@ -85,6 +92,7 @@ const StudentRoundsModal = ({
           </h2>
 
           <div className="student-rounds-header-actions">
+            {/* Show Selection Box if student is selected in at least 1 company */}
             {getSelectedCompanies(studentView.companies).length > 0 && (
               <div
                 className="offer-selection-container"
@@ -99,22 +107,18 @@ const StudentRoundsModal = ({
                 </label>
 
                 {isEditing ? (
-                  /* --- EDIT MODE: DROPDOWN ONLY (Auto-Save on Change) --- */
+                  /* --- EDIT MODE --- */
                   <select
                     id="offer-select"
                     className="offer-dropdown"
-                    /* Bind value directly to the parent state */
                     value={selectedOffers[studentView.studentId] || ""}
                     onChange={(e) => {
                       const newValue = e.target.value;
-                      // Trigger update immediately when user picks an option
                       handleOfferSelection(studentView.studentId, newValue);
-                      // Switch back to view mode
                       setIsEditing(false);
                     }}
-                    /* Add autoFocus so user can type to search immediately if needed */
                     autoFocus
-                    onBlur={() => setIsEditing(false)} // Optional: Close if they click away without selecting
+                    onBlur={() => setIsEditing(false)}
                     style={{ padding: "5px", borderRadius: "4px" }}
                   >
                     <option value="">Select Company</option>
@@ -127,7 +131,7 @@ const StudentRoundsModal = ({
                     )}
                   </select>
                 ) : (
-                  /* --- VIEW MODE: TEXT + PENCIL --- */
+                  /* --- VIEW MODE --- */
                   <>
                     <span
                       style={{

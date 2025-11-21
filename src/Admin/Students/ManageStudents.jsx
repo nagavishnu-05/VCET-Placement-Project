@@ -5,12 +5,11 @@ import "react-toastify/dist/ReactToastify.css";
 import * as XLSX from "xlsx";
 import axios from "axios";
 
-// Import components
 import CollegeHeader from "../Companies/components/CollegeHeader";
 import StudentNavbar from "./components/StudentNavbar";
 import StudentTable from "./components/StudentTable";
 import StudentRoundsModal from "./components/StudentRoundsModal";
-import Loader from "../../components/Loader";
+import Loader from "../../components/Loader"; 
 
 import "../../styles/ManageStudents.css";
 
@@ -21,10 +20,8 @@ const ManageStudents = () => {
     localStorage.getItem("selectedYear") || location.state?.batch?.endYear;
 
   const [showRoundDetails, setShowRoundDetails] = useState(false);
-  const [selectedStudent, setSelectedStudent] = useState(null);
   const [companies, setCompanies] = useState([]);
   const [studentInformationsDetail, setStudentInformationDetail] = useState([]);
-  const [studentRounds, setStudentRounds] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedOffers, setSelectedOffers] = useState({});
   const [studentRoles, setStudentRoles] = useState({});
@@ -32,12 +29,15 @@ const ManageStudents = () => {
     studentId: "",
     companies: [],
   });
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // Added Loading State
 
   const handleLogout = () => {
     window.location.href = "/";
   };
 
+  // 1. LOCALSTORAGE UPDATE: 
+  // Kept only the 'studentRoles' logic. Removed the complex legacy code 
+  // that tried to parse 'studentRounds' from localStorage.
   useEffect(() => {
     try {
       const savedRoles = localStorage.getItem("studentRoles");
@@ -49,22 +49,7 @@ const ManageStudents = () => {
     }
   }, []);
 
-  // Save selectedOffers to localStorage whenever it changes
-  useEffect(() => {
-    const saved = localStorage.getItem("selectedOffers");
-    if (saved) {
-      try {
-        setSelectedOffers(JSON.parse(saved));
-      } catch (e) {
-        console.log("Error loading selectedOffers from localStorage:", e);
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem("selectedOffers", JSON.stringify(selectedOffers));
-  }, [selectedOffers]);
-
+  // Fetch Student Info
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
@@ -120,6 +105,7 @@ const ManageStudents = () => {
     return allRoundsSelected ? "Selected" : "Rejected";
   };
 
+  // Updated to include Final Company check and better error handling
   const handleViewRounds = async (student) => {
     if (!student?._id) {
       console.error("Invalid student data");
@@ -147,54 +133,29 @@ const ManageStudents = () => {
 
       setStudentView(combinedData);
 
-      // Fetch the selected offer from database
+      // Fetch Final Company Selection if exists
       try {
-        console.log("🔍 Fetching selected offer for student:", student._id);
-        const selectedOfferRes = await axios.get(
-          `https://vcetplacement.onrender.com/api/finalcompany/get-final-company-for-a-student?year=${year}`
+        const finalCompanyRes = await axios.get(
+          `https://vcetplacement.onrender.com/api/finalcompany/getstudent-individual-final-company/${student._id}?year=${year}`
         );
 
-        console.log("📊 Selected offer response:", selectedOfferRes.data);
-
-        if (selectedOfferRes.data && Array.isArray(selectedOfferRes.data)) {
-          // Find the entry for the current student
-          const studentFinalCompany = selectedOfferRes.data.find(
-            (item) => item.studentId && item.studentId._id === student._id
-          );
-
-          if (studentFinalCompany && studentFinalCompany.companyId && studentFinalCompany.companyId._id) {
-            const companyId = studentFinalCompany.companyId._id;
-            console.log("✅ Found selected company in DB:", companyId);
-            setSelectedOffers((prev) => ({
-              ...prev,
-              [student._id]: companyId,
-            }));
-          } else {
-            console.log("⚠️ No final company found for this student, using fallback logic");
-            throw new Error("No final company for student");
-          }
-        } else {
-          throw new Error("Unexpected response format");
-        }
-      } catch (err) {
-        console.warn("Could not fetch selected offer from DB, using fallback:", err.message);
-        // Fallback to checking selected companies
-        const selectedCompanies = getSelectedCompanies(combinedData.companies);
-        const selectedCompanyIds = selectedCompanies.map(c => c.companyId);
-
-        if (selectedCompanyIds.length === 1) {
-          console.log("✅ Auto-selecting single eligible company:", selectedCompanyIds[0]);
+        if (finalCompanyRes.data && finalCompanyRes.data.companyId) {
           setSelectedOffers((prev) => ({
             ...prev,
-            [student._id]: selectedCompanyIds[0],
+            [student._id]: finalCompanyRes.data.companyId._id,
           }));
         } else {
-          console.log("⚠️ Multiple eligible companies, no selection yet");
           setSelectedOffers((prev) => ({
             ...prev,
             [student._id]: "",
           }));
         }
+      } catch (finalErr) {
+        console.log("No final company set yet or error fetching:", finalErr);
+        setSelectedOffers((prev) => ({
+          ...prev,
+          [student._id]: "",
+        }));
       }
 
       setShowRoundDetails(true);
@@ -235,11 +196,6 @@ const ManageStudents = () => {
       const company = companies.find((c) => c._id === companyId);
       const companyName = company ? company.name : "the company";
 
-      setSelectedOffers((prev) => ({
-        ...prev,
-        [studentId]: companyId,
-      }));
-
       await axios.post(
         `https://vcetplacement.onrender.com/api/finalcompany/set-company-as-final?year=${year}`,
         {
@@ -248,37 +204,25 @@ const ManageStudents = () => {
         }
       );
 
-      toast(`Offer Selected: ${companyName}`, {
+      setSelectedOffers((prev) => ({
+        ...prev,
+        [studentId]: companyId,
+      }));
+
+      toast(`Offer Updated to ${companyName}`, {
         position: "top-right",
         autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
         type: "success",
       });
     } catch (error) {
       console.error("Error saving offer selection:", error);
-      // Revert on error
-      setSelectedOffers((prev) => ({
-        ...prev,
-        [studentId]: selectedOffers[studentId] || "",
-      }));
-      toast("Failed to save offer selection.", {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        type: "error",
-      });
+      toast("Failed to save offer selection.", { type: "error" });
     } finally {
       setIsLoading(false);
     }
   };
 
-  // --- UPDATED EXPORT FUNCTION START ---
+  // --- UPDATED EXPORT FUNCTION (Dynamic Columns) ---
   const handleExportStudentRounds = async (student) => {
     if (!student || !student._id) {
       toast.error("Invalid Student Selected");
@@ -298,7 +242,7 @@ const ManageStudents = () => {
         return;
       }
 
-      // 1. Calculate Maximum Rounds dynamically across all companies for this student
+      // 1. Calculate Maximum Rounds dynamically
       let maxRounds = 0;
       apiData.companies.forEach((comp) => {
         if (comp.rounds) {
@@ -307,38 +251,37 @@ const ManageStudents = () => {
         }
       });
 
-      // 2. Build the Rows (One row per company)
+      // 2. Build the Rows
       const exportRows = apiData.companies.map((comp) => {
-        // NOTE: Removed "Student Name" and "Register Number" from the row object
         const row = {
           "Company Name": comp.companyName || "Unknown",
         };
 
-        // Dynamic Columns for Rounds (1 to maxRounds)
         for (let i = 1; i <= maxRounds; i++) {
           const roundKey = `round${i}`;
-          let status = ""; // Empty if round doesn't exist for this company
+          let status = "";
 
-          if (comp.rounds && comp.rounds.hasOwnProperty(roundKey)) {
+          if (comp.rounds && roundKey in comp.rounds) {
             status = comp.rounds[roundKey] === true ? "Selected" : "Rejected";
           }
 
           row[`Round ${i}`] = status;
         }
 
-        // Final Status
-        row["Final Status"] = comp.finalResult === true ? "Selected" : "Rejected";
+        row["Final Status"] =
+          comp.finalResult === true ? "Selected" : "Rejected";
 
         return row;
       });
 
-      // 3. Generate Excel
       const ws = XLSX.utils.json_to_sheet(exportRows);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Student Companies Report");
-      
-      // NOTE: Set the Filename to include the Register Number
-      XLSX.writeFile(wb, `${student.studentRegisterNumber}_${student.studentName}_Report.xlsx`);
+
+      XLSX.writeFile(
+        wb,
+        `${student.studentRegisterNumber}_${student.studentName}_Report.xlsx`
+      );
 
       toast.success("Excel exported successfully!");
     } catch (error) {
@@ -348,8 +291,8 @@ const ManageStudents = () => {
       setIsLoading(false);
     }
   };
-  // --- UPDATED EXPORT FUNCTION END ---
 
+  // --- UPDATED EXPORT ALL (Parallel Fetching + Dynamic Matrix) ---
   const handleExportAllStudents = async () => {
     if (!studentInformationsDetail || studentInformationsDetail.length === 0) {
       toast.warn("No students found to export.");
@@ -363,46 +306,46 @@ const ManageStudents = () => {
 
     setIsLoading(true);
     try {
-      // 1. Fetch details for ALL students in parallel
-      const allStudentPromises = studentInformationsDetail.map(async (student) => {
-        try {
-          const res = await axios.get(
-            `https://vcetplacement.onrender.com/api/shortlist/${student._id}/companies-rounds?year=${year}`
-          );
-          return {
-            student: student,
-            // If res.data.companies exists use it, otherwise empty array
-            studentCompanyData: res.data && res.data.companies ? res.data.companies : [] 
-          };
-        } catch (err) {
-          console.error(`Error fetching rounds for student ${student.studentRegisterNumber}`, err);
-          // If fetch fails, return empty data so the student still appears in the Excel with "Not Eligible"
-          return { student: student, studentCompanyData: [] };
+      // 1. Fetch details for ALL students
+      const allStudentPromises = studentInformationsDetail.map(
+        async (student) => {
+          try {
+            const res = await axios.get(
+              `https://vcetplacement.onrender.com/api/shortlist/${student._id}/companies-rounds?year=${year}`
+            );
+            return {
+              student: student,
+              studentCompanyData:
+                res.data && res.data.companies ? res.data.companies : [],
+            };
+          } catch (err) {
+            console.error(
+              `Error fetching rounds for student ${student.studentRegisterNumber}`,
+              err
+            );
+            return { student: student, studentCompanyData: [] };
+          }
         }
-      });
+      );
 
       const results = await Promise.all(allStudentPromises);
 
       // 2. Construct the Rows
       const exportRows = results.map(({ student, studentCompanyData }) => {
-        // Start with Student Details
         const row = {
           "Student Register Number": student.studentRegisterNumber,
           "Student Name": student.studentName,
         };
 
-        // 3. Iterate through the GLOBAL list of companies to create columns
         companies.forEach((globalCompany) => {
-          // Check if this student has data for this specific company
           const foundData = studentCompanyData.find(
             (sc) => sc.companyId === globalCompany._id
           );
 
           if (foundData) {
-            // Data exists: Check Final Result
-            row[globalCompany.name] = foundData.finalResult === true ? "Selected" : "Rejected";
+            row[globalCompany.name] =
+              foundData.finalResult === true ? "Selected" : "Rejected";
           } else {
-            // No data exists: Set as Not Eligible
             row[globalCompany.name] = "     -      ";
           }
         });
@@ -410,15 +353,13 @@ const ManageStudents = () => {
         return row;
       });
 
-      // 4. Generate Excel
       const ws = XLSX.utils.json_to_sheet(exportRows);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Overall Placement Status");
-      
+
       XLSX.writeFile(wb, "Overall_Student_Status_Report.xlsx");
 
       toast.success("Exported successfully!");
-
     } catch (error) {
       console.error("Error exporting all students:", error);
       toast.error("Failed to export data.");
@@ -461,7 +402,6 @@ const ManageStudents = () => {
         <StudentRoundsModal
           showRoundDetails={showRoundDetails}
           setShowRoundDetails={setShowRoundDetails}
-          selectedStudent={selectedStudent}
           companies={companies}
           selectedOffers={selectedOffers}
           handleOfferSelection={handleOfferSelection}
@@ -470,6 +410,7 @@ const ManageStudents = () => {
           studentView={studentView}
         />
       </div>
+      {/* Added Loader UI */}
       {isLoading && <Loader message="Processing..." />}
     </div>
   );

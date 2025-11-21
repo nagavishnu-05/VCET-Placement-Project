@@ -18,7 +18,6 @@ import RoundInsightsModal from "./components/RoundInsightsModal";
 import StudentRoundsPopup from "./components/StudentRoundsPopup";
 import AddCompanyForm from "./components/AddCompanyForm";
 import StudentSelectionModal from "./components/StudentSelectionModal";
-import Loader from "../../components/Loader";
 
 // Register ChartJS components
 ChartJS.register(
@@ -51,7 +50,6 @@ const ManageCompanies = () => {
   const [selectedAnalyticsCompany, setSelectedAnalyticsCompany] = useState(null);
   const [students, setStudents] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isDataLoading, setIsDataLoading] = useState(false);
 
 
 
@@ -83,25 +81,6 @@ const ManageCompanies = () => {
   useEffect(() => {
     console.log("🔔 totalPlacedStudents state changed:", totalPlacedStudents);
   }, [totalPlacedStudents]);
-
-  // Save selectedRoles to localStorage whenever it changes
-  useEffect(() => {
-    if (selectedCompany && Object.keys(selectedRoles).length > 0) {
-      const existing = localStorage.getItem("studentRoles");
-      let rolesMap = {};
-      if (existing) {
-        try {
-          rolesMap = JSON.parse(existing);
-        } catch (e) {
-          console.error("Error parsing existing roles:", e);
-        }
-      }
-      Object.entries(selectedRoles).forEach(([studentId, role]) => {
-        rolesMap[`${studentId}_${selectedCompany._id}`] = role;
-      });
-      localStorage.setItem("studentRoles", JSON.stringify(rolesMap));
-    }
-  }, [selectedRoles, selectedCompany]);
 
   const fetchCompanyRoundStats = useCallback(async (companyId) => {
     console.log(`Fetching stats for company ${companyId}`); // Debug log
@@ -183,7 +162,7 @@ const ManageCompanies = () => {
   // ...existing code...
 
   // const addingSortlist = () => {
-  //   axios.post(`http://localhost:5000/api/shortlist/addshortlist`, {
+  //   axios.post(`https://vcetplacement.onrender.com/api/shortlist/addshortlist`, {
   //     year: year,
   //     selectedStudents: selectedStudents,
   //     companyId : company  
@@ -199,7 +178,6 @@ const ManageCompanies = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
     const form = e.target;
     const newCompany = {
       name: form[0].value,
@@ -215,7 +193,7 @@ const ManageCompanies = () => {
       rounds: form[10].value,
     };
     setFormData(newCompany);
-
+   
     try {
       const studentsRes = await axios.get(
         `https://vcetplacement.onrender.com/api/student/getStudentInfo?year=${year}`
@@ -230,14 +208,14 @@ const ManageCompanies = () => {
 
             const twelfthValid = !isNaN(twelfth) && twelfth >= parseFloat(newCompany.twelfth);
             const diplomaValid = !isNaN(diploma) && diploma >= parseFloat(newCompany.diploma);
-
+            
             // If historyofArrears or currentArrears is empty/null, don't filter by it (allow all students)
-            const historyArrearCheck = newCompany.historyofArrears === '' || newCompany.historyofArrears === null
-              ? true
+            const historyArrearCheck = newCompany.historyofArrears === '' || newCompany.historyofArrears === null 
+              ? true 
               : hoa <= parseFloat(newCompany.historyofArrears);
-
-            const currentArrearCheck = newCompany.currentArrears === '' || newCompany.currentArrears === null
-              ? true
+            
+            const currentArrearCheck = newCompany.currentArrears === '' || newCompany.currentArrears === null 
+              ? true 
               : arrear <= parseFloat(newCompany.currentArrears);
 
             return (
@@ -252,14 +230,11 @@ const ManageCompanies = () => {
       setShowStudentSelect(true);
     } catch (error) {
       console.error("Error fetching students:", error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
   useEffect(() => {
     const fetchUserData = async () => {
-      setIsDataLoading(true);
       try {
         const res = await axios.get(
           `https://vcetplacement.onrender.com/api/company/ShowAllcompanies?year=${year}`
@@ -268,8 +243,6 @@ const ManageCompanies = () => {
         console.log("User data fetched:", res.data);
       } catch (error) {
         console.error("Error fetching user data:", error);
-      } finally {
-        setIsDataLoading(false);
       }
     };
     fetchUserData();
@@ -433,7 +406,9 @@ const ManageCompanies = () => {
   // Function to generate WhatsApp message for placed students
   const generatePlacedStudentsMessage = async () => {
     try {
-      const finalSelectedStudents = await fetchFinalSelectedStudents(year);
+      // Fetch final companies for the year
+      const response = await axios.get(`https://vcetplacement.onrender.com/api/finalcompany/get-final-company-for-a-student?year=${year}`);
+      const finalSelectedStudents = response.data || [];
       const greeting = getGreeting();
 
       if (!finalSelectedStudents || finalSelectedStudents.length === 0) {
@@ -464,29 +439,37 @@ const ManageCompanies = () => {
         }
       }
 
-      // List all placements
-      const placements = [];
+      // Group placements by role
+      const placementsByRole = {};
 
       finalSelectedStudents.forEach(student => {
-        const studentInfo = studentDetails.find(s => s._id === student.studentId);
-        const companyInfo = companies.find(c => c._id === student.companyId);
+        if (!student.studentId || !student.companyId) return;
+        const studentId = student.studentId._id || student.studentId;
+        const companyId = student.companyId._id || student.companyId;
+        const studentInfo = studentDetails.find(s => s._id === studentId);
+        const companyInfo = companies.find(c => c._id === companyId);
         if (studentInfo && companyInfo) {
-          const roleKey = `${student.studentId}_${student.companyId}`;
+          const roleKey = `${studentId}_${companyId}`;
           const role = rolesMap[roleKey] || "Placed"; // Default to "Placed" if no role
-          placements.push({
-            name: studentInfo.studentName,
-            company: companyInfo.name,
-            role: role
-          });
+
+          if (!placementsByRole[role]) {
+            placementsByRole[role] = [];
+          }
+
+          // Only add if not already in the list for this role
+          const exists = placementsByRole[role].some(p => p.name === studentInfo.studentName && p.company === companyInfo.name);
+          if (!exists) {
+            placementsByRole[role].push({
+              name: studentInfo.studentName,
+              company: companyInfo.name,
+              role: role
+            });
+          }
         }
       });
 
-      // Remove duplicates (same student-company-role)
-      const uniquePlacements = placements.filter((placement, index, self) =>
-        index === self.findIndex(p => p.name === placement.name && p.company === placement.company && p.role === placement.role)
-      );
-
-      const totalPlaced = uniquePlacements.length;
+      // Check if any placements
+      const totalPlaced = Object.values(placementsByRole).reduce((sum, list) => sum + list.length, 0);
 
       if (totalPlaced === 0) {
         return `${greeting}\n\nSo far placed students list\n\nNo placed students yet.`;
@@ -504,13 +487,19 @@ const ManageCompanies = () => {
       const yetToPlace = placementEligible - placedCount;
       const placementPercentage = ((placedCount / placementEligible) * 100).toFixed(2);
 
-      let message = `${greeting}\n\nSo far placed students list\n\n`;
+      let message = `${greeting}\n\n`;
 
-      // List all placements
-      uniquePlacements.forEach((placement, index) => {
-        message += `${index + 1}. ${placement.name} - ${placement.company} (${placement.role})\n`;
+      // Group by role and list
+      const roleOrder = ["Placed", "Internship", "Incubation"];
+      roleOrder.forEach(roleType => {
+        if (placementsByRole[roleType] && placementsByRole[roleType].length > 0) {
+          message += `${roleType}\n`;
+          placementsByRole[roleType].forEach((placement, index) => {
+            message += `${index + 1}. ${placement.name}\n`;
+          });
+          message += `\n`;
+        }
       });
-      message += `\n`;
 
       message += `Placement statistics\n${batch}\n\n`;
       message += `Total no of Students ${totalStudents}\n`;
@@ -551,7 +540,6 @@ const ManageCompanies = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      setIsDataLoading(true);
       try {
         const res = await axios.get(
           `https://vcetplacement.onrender.com/api/student/getStudentInfo?year=${year}`
@@ -559,8 +547,6 @@ const ManageCompanies = () => {
         setStudentInformationDetail(res.data);
       } catch (e) {
         console.log(e);
-      } finally {
-        setIsDataLoading(false);
       }
     };
 
@@ -634,7 +620,6 @@ const ManageCompanies = () => {
   };
   const handleCompanyClick = async (company) => {
     setSelectedCompany(company);
-    setIsLoading(true);
 
     try {
       const year =
@@ -671,24 +656,6 @@ const ManageCompanies = () => {
       // 🔹 Just replace the students list for that company
       setStudents(newStudents);
 
-      // Load roles from localStorage
-      const storedRoles = localStorage.getItem("studentRoles");
-      if (storedRoles) {
-        try {
-          const rolesMap = JSON.parse(storedRoles);
-          const loadedRoles = {};
-          newStudents.forEach(student => {
-            const key = `${student.id}_${company._id}`;
-            if (rolesMap[key]) {
-              loadedRoles[student.id] = rolesMap[key];
-            }
-          });
-          setSelectedRoles(loadedRoles);
-        } catch (e) {
-          console.error("Error loading roles from localStorage:", e);
-        }
-      }
-
       setShowStudentPopup(true);
     } catch (error) {
       console.error("Error handling company click:", error);
@@ -699,8 +666,6 @@ const ManageCompanies = () => {
         closeOnClick: true,
         type: "error",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
   const handleRoundStatusChange = (studentId, round, currentStatus) => {
@@ -798,6 +763,49 @@ const ManageCompanies = () => {
       if (response.data && response.data.error) {
         throw new Error(response.data.error);
       }
+
+      await Promise.all(
+        updates.map(async (update) => {
+          // Only proceed if the student Passed (Final Result = true)
+          if (update.finalResult === true) {
+            const studentId = update.studentId;
+
+            try {
+              // A. Check if student is ALREADY placed
+              let isAlreadyPlaced = false;
+              try {
+                const checkRes = await axios.get(
+                  `https://vcetplacement.onrender.com/api/finalcompany/getstudent-individual-final-company/${studentId}?year=${year}`
+                );
+                if (checkRes.data && checkRes.data.companyId) {
+                  isAlreadyPlaced = true;
+                }
+              } catch (checkErr) {
+                // If 404/error, assume not placed
+                console.log("Check placement error:", checkErr.message);
+                isAlreadyPlaced = false;
+              }
+
+              // B. If NOT placed, set this company as final
+              if (!isAlreadyPlaced) {
+                console.log(`Auto-selecting student ${studentId} for ${selectedCompany.name}`);
+                await axios.post(
+                  `https://vcetplacement.onrender.com/api/finalcompany/set-company-as-final?year=${year}`,
+                  {
+                    studentId: studentId,
+                    companyId: selectedCompany._id,
+                  }
+                );
+              } else {
+                console.log(`Student ${studentId} already placed. Skipping.`);
+              }
+            } catch (err) {
+              console.error(`Error updating placement status for ${studentId}`, err);
+            }
+          }
+        })
+      );
+      
       console.log("▶ Final Updates Sending", updates);
       toast("Rounds Update Successfully", {
         position: "top-right",
@@ -1012,7 +1020,6 @@ const ManageCompanies = () => {
         setReloadTrigger={setReloadTrigger}
         setShowForm={setShowForm}
       />
-      {(isLoading || isDataLoading) && <Loader message="Loading data..." />}
     </>
   );
 };
