@@ -6,7 +6,7 @@ const StudentRoundsModal = ({
   setShowRoundDetails,
   companies = [],
   selectedOffers = {},
-  handleOfferSelection = () => {},
+  handleOfferSelection = () => { },
   studentRoles = {},
   studentView = null,
 }) => {
@@ -42,14 +42,14 @@ const StudentRoundsModal = ({
   useEffect(() => {
     // Ensure the modal is open and valid student data exists
     if (showRoundDetails && studentView && studentView.studentId) {
-      
+
       // 1. Calculate eligible companies based on the LATEST studentView data
       const eligibleCompanies = getSelectedCompanies(studentView.companies);
 
       // 2. Logic: If there is EXACTLY ONE eligible company
       if (eligibleCompanies.length === 1) {
         const singleCompanyId = eligibleCompanies[0].companyId;
-        
+
         // 3. Get the currently saved offer from the DB/State
         const currentSavedOffer = selectedOffers[studentView.studentId];
 
@@ -61,12 +61,12 @@ const StudentRoundsModal = ({
           handleOfferSelection(studentView.studentId, singleCompanyId);
         }
       }
-      
+
       // Always ensure we are in view mode when data refreshes
       setIsEditing(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showRoundDetails, studentView, selectedOffers]); 
+  }, [showRoundDetails, studentView, selectedOffers]);
   // ^ Dependency on 'studentView' ensures this runs immediately when rounds/final status change.
 
   if (!showRoundDetails || !studentView || !studentView.studentId) {
@@ -174,7 +174,7 @@ const StudentRoundsModal = ({
 
         <div className="student-rounds-body">
           {Array.isArray(studentView.companies) &&
-          studentView.companies.length > 0 ? (
+            studentView.companies.length > 0 ? (
             <div className="company-rounds-grid">
               {studentView.companies.map((companyData) => {
                 if (!companyData || !companyData.companyId) return null;
@@ -200,7 +200,7 @@ const StudentRoundsModal = ({
 
                       {finalResult === true &&
                         studentRoles[
-                          `${studentView.studentId}_${companyId}`
+                        `${studentView.studentId}_${companyId}`
                         ] && (
                           <div
                             className="role-badge"
@@ -215,7 +215,7 @@ const StudentRoundsModal = ({
                           >
                             {
                               studentRoles[
-                                `${studentView.studentId}_${companyId}`
+                              `${studentView.studentId}_${companyId}`
                               ]
                             }
                           </div>
@@ -231,19 +231,18 @@ const StudentRoundsModal = ({
                               {round.replace("round", "Round ")}
                             </span>
                             <span
-                              className={`round-status ${
-                                status === true
-                                  ? "selected"
-                                  : status === false
+                              className={`round-status ${status === true
+                                ? "selected"
+                                : status === false
                                   ? "rejected"
                                   : "pending"
-                              }`}
+                                }`}
                             >
                               {status === true
                                 ? "Selected"
                                 : status === false
-                                ? "Rejected"
-                                : "Pending"}
+                                  ? "Rejected"
+                                  : "Pending"}
                             </span>
                           </div>
                         ))}
@@ -251,19 +250,18 @@ const StudentRoundsModal = ({
                       <div className="round-item final-status">
                         <span className="round-label">Final Status</span>
                         <span
-                          className={`round-status ${
-                            finalResult === true
-                              ? "selected"
-                              : finalResult === false
+                          className={`round-status ${finalResult === true
+                            ? "selected"
+                            : finalResult === false
                               ? "rejected"
                               : "pending"
-                          }`}
+                            }`}
                         >
                           {finalResult === true
                             ? "Selected"
                             : finalResult === false
-                            ? "Rejected"
-                            : "Pending"}
+                              ? "Rejected"
+                              : "Pending"}
                         </span>
                       </div>
                     </div>
