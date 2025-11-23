@@ -18,6 +18,7 @@ import RoundInsightsModal from "./components/RoundInsightsModal";
 import StudentRoundsPopup from "./components/StudentRoundsPopup";
 import AddCompanyForm from "./components/AddCompanyForm";
 import StudentSelectionModal from "./components/StudentSelectionModal";
+import Loader from "../../components/Loader";
 
 // Register ChartJS components
 ChartJS.register(
@@ -50,6 +51,7 @@ const ManageCompanies = () => {
   const [selectedAnalyticsCompany, setSelectedAnalyticsCompany] = useState(null);
   const [students, setStudents] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isDataLoading, setIsDataLoading] = useState(false);
 
 
 
@@ -76,7 +78,7 @@ const ManageCompanies = () => {
   const [averageSuccessRate, setAverageSuccessRate] = useState(0);
   const [totalPlacedStudents, setTotalPlacedStudents] = useState({ count: 0, loading: true });
   const [maxRounds, setMaxRounds] = useState(5);
-  
+
   // Debug log for totalPlacedStudents state changes
   useEffect(() => {
     console.log("🔔 totalPlacedStudents state changed:", totalPlacedStudents);
@@ -88,11 +90,11 @@ const ManageCompanies = () => {
       const res = await axios.get(
         `https://vcetplacement.onrender.com/api/shortlist/getshortlist/${year}/${companyId}`
       );
-      
+
       console.log(`Raw data for company ${companyId}:`, res.data); // Debug log
       const shortlistedData = res.data;
       console.log('Shortlisted data structure:', shortlistedData); // Debug log
-      
+
       const stats = {
         totalStudents: shortlistedData.length,
         rounds: {}
@@ -101,7 +103,7 @@ const ManageCompanies = () => {
       // Calculate stats for each round
       const company = companies.find(c => c._id === companyId);
       const totalRounds = company?.rounds || 0;
-      
+
       for (let i = 1; i <= totalRounds; i++) {
         let attended = 0;
         let selected = 0;
@@ -110,7 +112,7 @@ const ManageCompanies = () => {
           attended = shortlistedData.length;
           selected = shortlistedData.filter(student => student.rounds && student.rounds[`round${i}`] === true).length;
         } else {
-          attended = shortlistedData.filter(student => student.rounds && student.rounds[`round${i-1}`] === true).length;
+          attended = shortlistedData.filter(student => student.rounds && student.rounds[`round${i - 1}`] === true).length;
           selected = shortlistedData.filter(student => student.rounds && student.rounds[`round${i}`] === true).length;
         }
 
@@ -143,13 +145,13 @@ const ManageCompanies = () => {
       const stats = await fetchCompanyRoundStats(company._id);
       return { companyId: company._id, stats };
     });
-    
+
     const allStats = await Promise.all(statsPromises);
     const statsMap = {};
     allStats.forEach(({ companyId, stats }) => {
       statsMap[companyId] = stats;
     });
-    
+
     console.log('Final stats map:', statsMap); // Debug log
     setCompanyRoundStats(statsMap);
   }, [companies, fetchCompanyRoundStats]);
@@ -178,6 +180,7 @@ const ManageCompanies = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
     const form = e.target;
     const newCompany = {
       name: form[0].value,
@@ -193,48 +196,51 @@ const ManageCompanies = () => {
       rounds: form[10].value,
     };
     setFormData(newCompany);
-   
+
     try {
       const studentsRes = await axios.get(
         `https://vcetplacement.onrender.com/api/student/getStudentInfo?year=${year}`
       );
       const eligible = studentsRes.data.filter(student => {
-            const tenth = parseFloat(student.studentTenthPercentage) || 0;
-            const twelfth = parseFloat(student.studentTwelthPercentage);
-            const diploma = parseFloat(student.studentDiploma);
-            const cgpa = parseFloat(student.studentUGCGPA) || 0;
-            const arrear = parseFloat(student.studentCurrentArrears) || 0;
-            const hoa = parseFloat(student.studentHistoryOfArrears) || 0;
+        const tenth = parseFloat(student.studentTenthPercentage) || 0;
+        const twelfth = parseFloat(student.studentTwelthPercentage);
+        const diploma = parseFloat(student.studentDiploma);
+        const cgpa = parseFloat(student.studentUGCGPA) || 0;
+        const arrear = parseFloat(student.studentCurrentArrears) || 0;
+        const hoa = parseFloat(student.studentHistoryOfArrears) || 0;
 
-            const twelfthValid = !isNaN(twelfth) && twelfth >= parseFloat(newCompany.twelfth);
-            const diplomaValid = !isNaN(diploma) && diploma >= parseFloat(newCompany.diploma);
-            
-            // If historyofArrears or currentArrears is empty/null, don't filter by it (allow all students)
-            const historyArrearCheck = newCompany.historyofArrears === '' || newCompany.historyofArrears === null 
-              ? true 
-              : hoa <= parseFloat(newCompany.historyofArrears);
-            
-            const currentArrearCheck = newCompany.currentArrears === '' || newCompany.currentArrears === null 
-              ? true 
-              : arrear <= parseFloat(newCompany.currentArrears);
+        const twelfthValid = !isNaN(twelfth) && twelfth >= parseFloat(newCompany.twelfth);
+        const diplomaValid = !isNaN(diploma) && diploma >= parseFloat(newCompany.diploma);
 
-            return (
-              tenth >= parseFloat(newCompany.tenth) &&
-              (twelfthValid || diplomaValid) &&
-              cgpa >= parseFloat(newCompany.cgpa) &&
-              currentArrearCheck &&
-              historyArrearCheck
-            );
-          });
+        // If historyofArrears or currentArrears is empty/null, don't filter by it (allow all students)
+        const historyArrearCheck = newCompany.historyofArrears === '' || newCompany.historyofArrears === null
+          ? true
+          : hoa <= parseFloat(newCompany.historyofArrears);
+
+        const currentArrearCheck = newCompany.currentArrears === '' || newCompany.currentArrears === null
+          ? true
+          : arrear <= parseFloat(newCompany.currentArrears);
+
+        return (
+          tenth >= parseFloat(newCompany.tenth) &&
+          (twelfthValid || diplomaValid) &&
+          cgpa >= parseFloat(newCompany.cgpa) &&
+          currentArrearCheck &&
+          historyArrearCheck
+        );
+      });
       setEligibleStudents(eligible);
       setShowStudentSelect(true);
     } catch (error) {
       console.error("Error fetching students:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
     const fetchUserData = async () => {
+      setIsDataLoading(true);
       try {
         const res = await axios.get(
           `https://vcetplacement.onrender.com/api/company/ShowAllcompanies?year=${year}`
@@ -243,6 +249,8 @@ const ManageCompanies = () => {
         console.log("User data fetched:", res.data);
       } catch (error) {
         console.error("Error fetching user data:", error);
+      } finally {
+        setIsDataLoading(false);
       }
     };
     fetchUserData();
@@ -372,11 +380,11 @@ const ManageCompanies = () => {
       const finalSelectedStudents = await fetchFinalSelectedStudents(year);
       console.log("📊 Received finalSelectedStudents:", finalSelectedStudents);
       console.log("📊 Is array?", Array.isArray(finalSelectedStudents));
-      
+
       // Get unique student IDs (a student may be placed in multiple companies)
       const uniqueStudentIds = new Set(finalSelectedStudents.map(student => student.studentId));
       const placedCount = uniqueStudentIds.size;
-      
+
       console.log("📊 Total entries (including duplicates):", finalSelectedStudents.length);
       console.log("📊 Unique student IDs:", Array.from(uniqueStudentIds));
       console.log("📊 Total unique placed students count:", placedCount);
@@ -428,52 +436,49 @@ const ManageCompanies = () => {
         }
       }
 
-      // Load roles from localStorage
-      const storedRoles = localStorage.getItem("studentRoles");
-      let rolesMap = {};
-      if (storedRoles) {
-        try {
-          rolesMap = JSON.parse(storedRoles);
-        } catch (e) {
-          console.error("Error parsing roles from localStorage:", e);
-        }
-      }
-
       // Group placements by role
       const placementsByRole = {};
 
       finalSelectedStudents.forEach(student => {
         if (!student.studentId || !student.companyId) return;
+        // Handle both object and string ID formats
         const studentId = student.studentId._id || student.studentId;
         const companyId = student.companyId._id || student.companyId;
-        const studentInfo = studentDetails.find(s => s._id === studentId);
-        const companyInfo = companies.find(c => c._id === companyId);
-        if (studentInfo && companyInfo) {
-          const roleKey = `${studentId}_${companyId}`;
-          const role = rolesMap[roleKey] || "Placed"; // Default to "Placed" if no role
 
-          if (!placementsByRole[role]) {
-            placementsByRole[role] = [];
-          }
+        // Try to get names from the populated objects if available, otherwise look up
+        const studentName = student.studentId.studentName || studentDetails.find(s => s._id === studentId)?.studentName || "Unknown Student";
+        const companyName = student.companyId.name || companies.find(c => c._id === companyId)?.name || "Unknown Company";
 
-          // Only add if not already in the list for this role
-          const exists = placementsByRole[role].some(p => p.name === studentInfo.studentName && p.company === companyInfo.name);
-          if (!exists) {
-            placementsByRole[role].push({
-              name: studentInfo.studentName,
-              company: companyInfo.name,
-              role: role
-            });
-          }
+        // Use role from the API response if available, otherwise default
+        // Note: The API might not return 'studentRole' directly in this endpoint. 
+        // If it's not there, we default to "Placed".
+        let role = student.studentRole || "Placed";
+
+        // Rename "Role Offered" to "Placed"
+        if (role === "Role Offered") {
+          role = "Placed";
         }
+
+        if (!placementsByRole[role]) {
+          placementsByRole[role] = [];
+        }
+
+        placementsByRole[role].push({
+          name: studentName,
+          company: companyName,
+          role: role
+        });
       });
 
-      // Check if any placements
-      const totalPlaced = Object.values(placementsByRole).reduce((sum, list) => sum + list.length, 0);
-
-      if (totalPlaced === 0) {
-        return `${greeting}\n\nSo far placed students list\n\nNo placed students yet.`;
-      }
+      // Calculate unique placed students count
+      const uniquePlacedStudents = new Set();
+      finalSelectedStudents.forEach(student => {
+        if (student.studentId) {
+          const sId = student.studentId._id || student.studentId;
+          uniquePlacedStudents.add(sId);
+        }
+      });
+      const totalPlaced = uniquePlacedStudents.size;
 
       // Calculate batch years from year (assuming year is end year)
       const startYear = year - 4;
@@ -485,17 +490,30 @@ const ManageCompanies = () => {
       const placementEligible = Math.round(totalStudents * 0.81); // Approximate based on example
       const placedCount = totalPlaced;
       const yetToPlace = placementEligible - placedCount;
-      const placementPercentage = ((placedCount / placementEligible) * 100).toFixed(2);
+      const placementPercentage = placementEligible > 0 ? ((placedCount / placementEligible) * 100).toFixed(2) : "0.00";
 
       let message = `${greeting}\n\n`;
+      message += `So far placed students :\n\n`;
 
-      // Group by role and list
+      // List students by role in specific order: Placed, Internship, Incubation
       const roleOrder = ["Placed", "Internship", "Incubation"];
+
       roleOrder.forEach(roleType => {
         if (placementsByRole[roleType] && placementsByRole[roleType].length > 0) {
           message += `${roleType}\n`;
           placementsByRole[roleType].forEach((placement, index) => {
-            message += `${index + 1}. ${placement.name}\n`;
+            message += `${index + 1}. ${placement.name} - ${placement.company}\n`;
+          });
+          message += `\n`;
+        }
+      });
+
+      // Also check if there are any other roles not in the standard list and append them
+      Object.keys(placementsByRole).forEach(roleType => {
+        if (!roleOrder.includes(roleType) && placementsByRole[roleType].length > 0) {
+          message += `${roleType}\n`;
+          placementsByRole[roleType].forEach((placement, index) => {
+            message += `${index + 1}. ${placement.name} - ${placement.company}\n`;
           });
           message += `\n`;
         }
@@ -518,20 +536,20 @@ const ManageCompanies = () => {
   };
 
   const handleDeleteCompany = async (companyId) => {
-  try {
-    const shortlistRes = await axios.delete(
-      `https://vcetplacement.onrender.com/api/shortlist/deleteshortlist/${year}/${companyId}`
-    );
-    console.log("Shortlist delete:", shortlistRes.data);
-    const companyRes = await axios.delete(
-      `https://vcetplacement.onrender.com/api/company/deletecompany/${companyId}?year=${year}`
-    );
-    console.log("Company delete:", companyRes.data);
-    setReloadTrigger((prev) => !prev);
-  } catch (error) {
-    console.error("Failed to delete company:", error.response?.data || error.message);
-  }
- };
+    try {
+      const shortlistRes = await axios.delete(
+        `https://vcetplacement.onrender.com/api/shortlist/deleteshortlist/${year}/${companyId}`
+      );
+      console.log("Shortlist delete:", shortlistRes.data);
+      const companyRes = await axios.delete(
+        `https://vcetplacement.onrender.com/api/company/deletecompany/${companyId}?year=${year}`
+      );
+      console.log("Company delete:", companyRes.data);
+      setReloadTrigger((prev) => !prev);
+    } catch (error) {
+      console.error("Failed to delete company:", error.response?.data || error.message);
+    }
+  };
 
   const [searchQuery, setSearchQuery] = useState("");
   const [companySearchQuery, setCompanySearchQuery] = useState("");
@@ -540,6 +558,7 @@ const ManageCompanies = () => {
 
   useEffect(() => {
     const fetchData = async () => {
+      setIsDataLoading(true);
       try {
         const res = await axios.get(
           `https://vcetplacement.onrender.com/api/student/getStudentInfo?year=${year}`
@@ -547,6 +566,8 @@ const ManageCompanies = () => {
         setStudentInformationDetail(res.data);
       } catch (e) {
         console.log(e);
+      } finally {
+        setIsDataLoading(false);
       }
     };
 
@@ -554,13 +575,6 @@ const ManageCompanies = () => {
   }, [year]);
 
   console.log(studentInformationsDetail);
-
-  useEffect(() => {
-    const savedCompanies = localStorage.getItem("companies");
-    if (savedCompanies) {
-      setCompanies(JSON.parse(savedCompanies));
-    }
-  }, []);
 
   // Fetch eligible students when modalYear changes
   useEffect(() => {
@@ -580,14 +594,14 @@ const ManageCompanies = () => {
 
             const twelfthValid = !isNaN(twelfth) && twelfth >= parseFloat(formData.twelfth);
             const diplomaValid = !isNaN(diploma) && diploma >= parseFloat(formData.diploma);
-            
+
             // If historyofArrears or currentArrears is empty/null, don't filter by it (allow all students)
-            const historyArrearCheck = formData.historyofArrears === '' || formData.historyofArrears === null 
-              ? true 
+            const historyArrearCheck = formData.historyofArrears === '' || formData.historyofArrears === null
+              ? true
               : hoa <= parseFloat(formData.historyofArrears);
-            
-            const currentArrearCheck = formData.currentArrears === '' || formData.currentArrears === null 
-              ? true 
+
+            const currentArrearCheck = formData.currentArrears === '' || formData.currentArrears === null
+              ? true
               : arrear <= parseFloat(formData.currentArrears);
 
             return (
@@ -620,7 +634,7 @@ const ManageCompanies = () => {
   };
   const handleCompanyClick = async (company) => {
     setSelectedCompany(company);
-
+    setIsLoading(true);
     try {
       const year =
         localStorage.getItem("selectedYear") ||
@@ -642,6 +656,7 @@ const ManageCompanies = () => {
           roundsData[key] =
             entry.rounds?.[key] === true ? "selected" : "rejected";
         }
+        const studentRole = entry.studentRole || null;
 
         return {
           id: student._id,
@@ -650,11 +665,22 @@ const ManageCompanies = () => {
           rounds: {
             [company._id]: roundsData,
           },
+          studentRole: studentRole
         };
       });
-
+      console.log("🟦 NEW STUDENTS (Updated Data):", JSON.parse(JSON.stringify(newStudents)));
       // 🔹 Just replace the students list for that company
       setStudents(newStudents);
+
+      // Populate selectedRoles with existing roles
+      const initialRoles = {};
+      newStudents.forEach((s) => {
+        if (s.studentRole) {
+          if (!initialRoles[s.id]) initialRoles[s.id] = {};
+          initialRoles[s.id][company._id] = s.studentRole;
+        }
+      });
+      setSelectedRoles((prev) => ({ ...prev, ...initialRoles }));
 
       setShowStudentPopup(true);
     } catch (error) {
@@ -666,6 +692,8 @@ const ManageCompanies = () => {
         closeOnClick: true,
         type: "error",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
   const handleRoundStatusChange = (studentId, round, currentStatus) => {
@@ -748,10 +776,10 @@ const ManageCompanies = () => {
           companyId: selectedCompany._id,
           rounds: roundBooleanMap,
           finalResult,
-          role: selectedRoles[student.id] || null,
+          studentRole: selectedRoles[student.id || student._id]?.[selectedCompany._id] || null
         };
       });
-      console.log("Sending updates", updates);
+      console.log("🟩 UPDATES (Final Payload to API):", JSON.parse(JSON.stringify(updates)));
 
       const response = await axios.put(
         "https://vcetplacement.onrender.com/api/shortlist/update-rounds",
@@ -805,7 +833,7 @@ const ManageCompanies = () => {
           }
         })
       );
-      
+
       console.log("▶ Final Updates Sending", updates);
       toast("Rounds Update Successfully", {
         position: "top-right",
@@ -817,62 +845,6 @@ const ManageCompanies = () => {
 
       // Close popup immediately after showing toast
       handleClosePopup();
-
-      // Handle localStorage merging safely
-      try {
-        const existingRoundsData = localStorage.getItem("studentRounds");
-        let existingRounds = [];
-        if (existingRoundsData) {
-          const parsed = JSON.parse(existingRoundsData);
-          if (Array.isArray(parsed)) {
-            existingRounds = parsed;
-          } else {
-            console.warn("Invalid studentRounds data in localStorage, starting fresh.");
-          }
-        }
-
-        // Convert to a map for easier merging
-        const existingMap = {};
-        existingRounds.forEach((s) => {
-          existingMap[s.studentId] = s.rounds;
-        });
-
-        // Merge new updates into existing
-        students.forEach((student) => {
-          const id = student.id || student._id;
-          const newRounds = student.rounds;
-
-          existingMap[id] = {
-            ...(existingMap[id] || {}),
-            ...newRounds,
-          };
-        });
-
-        // Convert back to array
-        const mergedRounds = Object.entries(existingMap).map(
-          ([studentId, rounds]) => ({
-            studentId,
-            rounds,
-          })
-        );
-
-        // Save merged data
-        localStorage.setItem("studentRounds", JSON.stringify(mergedRounds));
-
-        // Also save roles separately for ManageStudents
-        const rolesMap = {};
-        students.forEach((student) => {
-          const studentId = student.id || student._id;
-          const role = selectedRoles[studentId];
-          if (role) {
-            rolesMap[`${studentId}_${selectedCompany._id}`] = role;
-          }
-        });
-        localStorage.setItem("studentRoles", JSON.stringify(rolesMap));
-      } catch (localError) {
-        console.error("Failed to update localStorage:", localError);
-        // Don't throw - API succeeded, localStorage is secondary
-      }
 
       // Refresh round stats for the current company
       const updatedStats = await fetchCompanyRoundStats(selectedCompany._id);
@@ -899,7 +871,7 @@ const ManageCompanies = () => {
     setSearchQuery("");
     setSelectedRoles({});
   };
-  
+
   return (
     <>
       <div className="min-h-screen bg-gradient-animation p-4 relative overflow-hidden">
@@ -1020,6 +992,7 @@ const ManageCompanies = () => {
         setReloadTrigger={setReloadTrigger}
         setShowForm={setShowForm}
       />
+      {(isLoading || isDataLoading) && <Loader message="Loading data..." />}
     </>
   );
 };

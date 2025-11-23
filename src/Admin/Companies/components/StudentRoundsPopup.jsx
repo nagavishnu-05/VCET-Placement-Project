@@ -22,7 +22,7 @@ const StudentRoundsPopup = ({
   if (!showStudentPopup || !selectedCompany) return null;
 
   const filteredStudents = students.filter((student) =>
-    student.name.toLowerCase().includes(searchQuery.toLowerCase())
+    student?.name?.toLowerCase?.().includes(searchQuery.toLowerCase())
   );
 
   const handleExport = () => {
@@ -217,11 +217,14 @@ const StudentRoundsPopup = ({
                       <td>
                         {finalStatus === "selected" ? (
                           <select
-                            value={selectedRoles[student.id] || ""}
+                            value={selectedRoles[student.id]?.[selectedCompany._id] || ""}
                             onChange={(e) => {
                               setSelectedRoles(prev => ({
                                 ...prev,
-                                [student.id]: e.target.value
+                                [student.id]: {
+                                  ...(prev[student.id] || {}),
+                                  [selectedCompany._id]: e.target.value
+                                }
                               }));
                             }}
                             style={{

@@ -24,7 +24,6 @@ const ManageStudents = () => {
   const [studentInformationsDetail, setStudentInformationDetail] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedOffers, setSelectedOffers] = useState({});
-  const [studentRoles, setStudentRoles] = useState({});
   const [studentView, setStudentView] = useState({
     studentId: "",
     companies: [],
@@ -34,20 +33,6 @@ const ManageStudents = () => {
   const handleLogout = () => {
     window.location.href = "/";
   };
-
-  // 1. LOCALSTORAGE UPDATE: 
-  // Kept only the 'studentRoles' logic. Removed the complex legacy code 
-  // that tried to parse 'studentRounds' from localStorage.
-  useEffect(() => {
-    try {
-      const savedRoles = localStorage.getItem("studentRoles");
-      if (savedRoles) {
-        setStudentRoles(JSON.parse(savedRoles));
-      }
-    } catch (e) {
-      console.log("Error loading roles from localStorage:", e);
-    }
-  }, []);
 
   // Fetch Student Info
   useEffect(() => {
@@ -107,11 +92,7 @@ const ManageStudents = () => {
 
   // Updated to include Final Company check and better error handling
   const handleViewRounds = async (student) => {
-    if (!student?._id) {
-      console.error("Invalid student data");
-      toast.error("Invalid student data");
-      return;
-    }
+    if (!student?._id) return;
 
     setIsLoading(true);
     try {
@@ -119,16 +100,16 @@ const ManageStudents = () => {
         `https://vcetplacement.onrender.com/api/shortlist/${student._id}/companies-rounds?year=${year}`
       );
 
-      if (!res.data) {
-        throw new Error("No data received from server");
-      }
+      const companiesData = res.data.companies || [];
+      
+      console.log("API Data:", companiesData); 
 
       const combinedData = {
         ...res.data,
-        studentName: student.studentName || "",
-        studentRegisterNumber: student.studentRegisterNumber || "",
+        studentName: student.studentName,
+        studentRegisterNumber: student.studentRegisterNumber,
         studentId: student._id,
-        companies: Array.isArray(res.data.companies) ? res.data.companies : [],
+        companies: companiesData 
       };
 
       setStudentView(combinedData);
@@ -261,7 +242,7 @@ const ManageStudents = () => {
           const roundKey = `round${i}`;
           let status = "";
 
-          if (comp.rounds && roundKey in comp.rounds) {
+          if (comp.rounds && comp.rounds.hasOwnProperty(roundKey)) {
             status = comp.rounds[roundKey] === true ? "Selected" : "Rejected";
           }
 
@@ -406,7 +387,6 @@ const ManageStudents = () => {
           selectedOffers={selectedOffers}
           handleOfferSelection={handleOfferSelection}
           calculateFinalStatus={calculateFinalStatus}
-          studentRoles={studentRoles}
           studentView={studentView}
         />
       </div>
