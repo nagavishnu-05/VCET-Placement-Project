@@ -485,9 +485,14 @@ const ManageCompanies = () => {
       const batch = `${startYear}-${year}`;
 
       // Calculate placement statistics
+      // Calculate placement statistics
       const totalStudents = studentDetails.length;
-      const placementInterested = Math.round(totalStudents * 0.93); // Approximate based on example
-      const placementEligible = Math.round(totalStudents * 0.81); // Approximate based on example
+
+      // Calculate stats based on studentPlacementInterest
+      // Assuming it is "Yes" or "No" (case-insensitive check)
+      const placementInterested = studentDetails.filter(s => s.studentPlacementInterest && s.studentPlacementInterest.toLowerCase() === 'yes').length;
+      const placementEligible = studentDetails.filter(s => s.studentPlacementInterest && s.studentPlacementInterest.toLowerCase() === 'yes').length; // As per user, this field covers both
+
       const placedCount = totalPlaced;
       const yetToPlace = placementEligible - placedCount;
       const placementPercentage = placementEligible > 0 ? ((placedCount / placementEligible) * 100).toFixed(2) : "0.00";
