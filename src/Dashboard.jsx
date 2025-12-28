@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Head from 'next/head';
 import Vcet from "./assets/VCET Logo.jpg";
-import { disableDevTools } from "./utils/disableDevTools";
+// import { disableDevTools } from "./utils/disableDevTools";
 import CSE from "./assets/CSE LOGO.jpg";
 import { FaUser, FaLock, FaUserShield } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
@@ -9,14 +9,14 @@ import Loader from "./components/Loader";
 import "./styles/Dashboard.css";
 
 function Dashboard() {
-  useEffect(() => {
-    disableDevTools();
-  }, []);
+  // useEffect(() => {
+  //   disableDevTools();
+  // }, []);
 
   const [isStudentLogin, setIsStudentLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  
+
 
   const handleAdminLogin = async (e) => {
     e.preventDefault();
@@ -71,10 +71,10 @@ function Dashboard() {
             <div className="about-section">
               <h2 className="text-3xl font-bold text-white mb-6">Placement Portal</h2>
               <p className="text-white leading-relaxed mb-6">
-              At Velammal College of Engineering and Technology (VCET), Madurai, the Placement Portal is a digital initiative 
-              aimed at transforming the campus recruitment process. This project efficiently manages student and company data, 
-              ensuring smooth tracking of placement status and facilitating effective coordination between students, recruiters, 
-              and the placement cell.
+                At Velammal College of Engineering and Technology (VCET), Madurai, the Placement Portal is a digital initiative
+                aimed at transforming the campus recruitment process. This project efficiently manages student and company data,
+                ensuring smooth tracking of placement status and facilitating effective coordination between students, recruiters,
+                and the placement cell.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="feature-card">

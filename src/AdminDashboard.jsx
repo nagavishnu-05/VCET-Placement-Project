@@ -1,4 +1,4 @@
-import React, { useEffect , useState } from "react";
+import React, { useEffect, useState } from "react";
 import Head from "next/head";
 import {
   FaFileExcel,
@@ -6,7 +6,7 @@ import {
   FaChevronDown,
   FaHistory,
 } from "react-icons/fa";
-import { disableDevTools } from "./utils/disableDevTools";
+// import { disableDevTools } from "./utils/disableDevTools";
 import { useNavigate } from "react-router-dom";
 import Vcet from "./assets/VCET Logo.jpg";
 import CSE from "./assets/CSE LOGO.jpg";
@@ -17,9 +17,9 @@ import 'react-toastify/dist/ReactToastify.css';
 import Loader from './components/Loader';
 
 const AdminDashboard = () => {
-  useEffect(() => {
-    disableDevTools();
-  }, []);
+  // useEffect(() => {
+  //   disableDevTools();
+  // }, []);
 
   const navigate = useNavigate();
   const [isDragging, setIsDragging] = useState(false);
@@ -32,16 +32,16 @@ const AdminDashboard = () => {
   const [databases, setDatabases] = useState([]);
 
   const fetchDB = async () => {
-      setIsLoading(true);
-      try {
-        const res = await axios.get("https://vcetplacement.onrender.com/databases");
-        setDatabases(res.data);
-      } catch (err) {
-        console.error("Error fetching databases:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    setIsLoading(true);
+    try {
+      const res = await axios.get("https://vcetplacement.onrender.com/databases");
+      setDatabases(res.data);
+    } catch (err) {
+      console.error("Error fetching databases:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchDB();
@@ -67,12 +67,12 @@ const AdminDashboard = () => {
       );
       setStudentsDetails(res.data.students);
       toast('Rounds Update Successfully', {
-              position: "top-right",
-              autoClose: 3000,
-              hideProgressBar: false,
-              closeOnClick: true,
-              type: "success"
-              });
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        type: "success"
+      });
       fetchDB();
     } catch (err) {
       console.error(err);
@@ -103,7 +103,7 @@ const AdminDashboard = () => {
     if (
       file &&
       file.type ===
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     ) {
       navigate("/admin/companies");
     }
@@ -183,9 +183,8 @@ const AdminDashboard = () => {
           </div>
 
           <div
-            className={`admin-excel-import-container ${
-              isDragging ? "dragging" : ""
-            }`}
+            className={`admin-excel-import-container ${isDragging ? "dragging" : ""
+              }`}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
@@ -211,9 +210,8 @@ const AdminDashboard = () => {
               <FaHistory className="admin-nav-icon" />
               Previous Batches
               <FaChevronDown
-                className={`admin-dropdown-icon ${
-                  isDropdownOpen ? "open" : ""
-                }`}
+                className={`admin-dropdown-icon ${isDropdownOpen ? "open" : ""
+                  }`}
               />
             </button>
             {isDropdownOpen && (
@@ -229,14 +227,14 @@ const AdminDashboard = () => {
                 ))} */}
 
                 {databases.map((batch) => (
-                <button
-                  key={batch.id}
-                  className="admin-previous-batches-item"
-                  onClick={() => handleBatchSelect(batch)}
-                >
-                  {batch.startYear} - {batch.endYear}
-                </button>
-              ))}
+                  <button
+                    key={batch.id}
+                    className="admin-previous-batches-item"
+                    onClick={() => handleBatchSelect(batch)}
+                  >
+                    {batch.startYear} - {batch.endYear}
+                  </button>
+                ))}
               </div>
             )}
           </div>
