@@ -9,7 +9,8 @@ const AnalyticsView = ({
   companies,
   studentInformationsDetail,
   totalPlacedStudents,
-  generatePlacedStudentsMessage
+  generatePlacedStudentsMessage,
+  generateOverallStatsMessage
 }) => {
   return (
     <div className="analytics-container">
@@ -90,7 +91,7 @@ const AnalyticsView = ({
               }}
             />
           </div>
-          
+
           {/* Success Rate Graph */}
           <div className="chart-container">
             <Bar
@@ -151,32 +152,80 @@ const AnalyticsView = ({
       </div>
 
       <div className="analytics-card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
           <h3>Overall Performance</h3>
-          <button
-            className="admin-submit-button"
-            onClick={async () => {
-              const message = await generatePlacedStudentsMessage();
-              const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-              window.open(whatsappUrl, '_blank');
-            }}
-            style={{
-              backgroundColor: '#25D366',
-              border: 'none',
-              color: 'white',
-              padding: '0.5rem 1rem',
-              borderRadius: '0.375rem',
-              fontSize: '0.875rem',
-              fontWeight: '600',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}
-          >
-            <FaWhatsapp style={{ width: '16px', height: '16px' }} />
-            Share on WhatsApp
-          </button>
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <button
+              className="whatsapp-btn whatsapp-btn-selected"
+              onClick={async () => {
+                const message = await generatePlacedStudentsMessage();
+                const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+                window.open(whatsappUrl, '_blank');
+              }}
+              style={{
+                background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
+                border: 'none',
+                color: 'white',
+                padding: '0.75rem 1.25rem',
+                borderRadius: '0.5rem',
+                fontSize: '0.875rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                boxShadow: '0 4px 15px rgba(37, 211, 102, 0.3)',
+                transition: 'all 0.3s ease',
+                transform: 'translateY(0)',
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-2px)';
+                e.target.style.boxShadow = '0 6px 20px rgba(37, 211, 102, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = '0 4px 15px rgba(37, 211, 102, 0.3)';
+              }}
+            >
+              <FaWhatsapp style={{ width: '18px', height: '18px' }} />
+              Only Selected Offers
+            </button>
+            <button
+              className="whatsapp-btn whatsapp-btn-stats"
+              onClick={async () => {
+                const message = await generateOverallStatsMessage();
+                const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+                window.open(whatsappUrl, '_blank');
+              }}
+              style={{
+                background: 'linear-gradient(135deg, #075E54 0%, #128C7E 100%)',
+                border: 'none',
+                color: 'white',
+                padding: '0.75rem 1.25rem',
+                borderRadius: '0.5rem',
+                fontSize: '0.875rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                boxShadow: '0 4px 15px rgba(7, 94, 84, 0.3)',
+                transition: 'all 0.3s ease',
+                transform: 'translateY(0)',
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-2px)';
+                e.target.style.boxShadow = '0 6px 20px rgba(7, 94, 84, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = '0 4px 15px rgba(7, 94, 84, 0.3)';
+              }}
+            >
+              <FaWhatsapp style={{ width: '18px', height: '18px' }} />
+              Overall Stats
+            </button>
+          </div>
         </div>
         <div className="analytics-stats">
           <div className="stat-item">

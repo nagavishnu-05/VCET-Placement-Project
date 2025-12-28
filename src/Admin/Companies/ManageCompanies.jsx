@@ -540,6 +540,140 @@ const ManageCompanies = () => {
     }
   };
 
+  // Function to generate WhatsApp message for overall stats using placed-students API
+  const generateOverallStatsMessage = async () => {
+    try {
+      const greeting = getGreeting();
+
+      // Fetch placed students from the API
+      const response = await axios.get(`https://vcetplacement.onrender.com/api/shortlist/placed-students?year=${year}`);
+      const placedStudentsData = response.data || [];
+
+      if (!placedStudentsData || placedStudentsData.length === 0) {
+        return `${greeting}\n\nSo far placed students list\n\nNo placed students yet.`;
+      }
+
+      // Ensure studentInformationsDetail is available
+      let studentDetails = studentInformationsDetail;
+      if (!studentDetails || studentDetails.length === 0) {
+        try {
+          const res = await axios.get(`https://vcetplacement.onrender.com/api/student/getStudentInfo?year=${year}`);
+          studentDetails = res.data;
+          setStudentInformationDetail(studentDetails);
+        } catch (e) {
+          console.error("Error fetching student info for message:", e);
+          return `${greeting}\n\nSo far placed students list\n\nCould not fetch student details.`;
+        }
+      }
+
+      // Separate students by role categories
+      const placedStudents = []; // Role Offered or no role specified
+      const internStudents = []; // Internship
+      const incubationStudents = []; // Incubation
+
+      placedStudentsData.forEach(student => {
+        const studentName = student.studentName;
+        const companies = student.placedCompanies || [];
+
+        // Group companies by role for this student
+        const placedCompanyNames = [];
+        const internCompanyNames = [];
+        const incubationCompanyNames = [];
+
+        companies.forEach(company => {
+          const companyName = company.companyName;
+          const role = company.role || "Role Offered";
+
+          if (role === "Internship") {
+            internCompanyNames.push(companyName);
+          } else if (role === "Incubation") {
+            incubationCompanyNames.push(companyName);
+          } else {
+            // "Role Offered" or any other role treated as Placed
+            placedCompanyNames.push(companyName);
+          }
+        });
+
+        // Add to respective arrays
+        if (placedCompanyNames.length > 0) {
+          placedStudents.push({
+            name: studentName,
+            companies: placedCompanyNames.join(", ")
+          });
+        }
+        if (internCompanyNames.length > 0) {
+          internStudents.push({
+            name: studentName,
+            companies: internCompanyNames
+          });
+        }
+        if (incubationCompanyNames.length > 0) {
+          incubationStudents.push({
+            name: studentName,
+            companies: incubationCompanyNames.join(", ")
+          });
+        }
+      });
+
+      // Calculate batch years
+      const startYear = year - 4;
+      const batch = `${startYear}-${year}`;
+
+      // Calculate placement statistics
+      const totalStudents = studentDetails.length;
+      const placementInterested = studentDetails.filter(s => s.studentPlacementInterest && s.studentPlacementInterest.toLowerCase() === 'yes').length;
+      const placementEligible = placementInterested; // As per user requirement
+      const placedCount = placedStudentsData.length;
+      const yetToPlace = placementEligible - placedCount;
+      const placementPercentage = placementEligible > 0 ? ((placedCount / placementEligible) * 100).toFixed(2) : "0.00";
+
+      // Build the message
+      let message = `${greeting}\n\n`;
+      message += `So far placed students list\n\n`;
+
+      // List placed students
+      placedStudents.forEach((student, index) => {
+        message += `${index + 1}.${student.name}(${student.companies})\n`;
+      });
+      message += `\n`;
+
+      // List intern students
+      if (internStudents.length > 0) {
+        const totalInterns = internStudents.length;
+        message += `Students in Intern:${String(totalInterns).padStart(2, '0')}\n`;
+
+        internStudents.forEach((student, index) => {
+          const companiesStr = student.companies.join(", ");
+          message += `${index + 1}.${student.name}(${companiesStr})\n`;
+        });
+        message += `\n`;
+      }
+
+      // List incubation students if any
+      if (incubationStudents.length > 0) {
+        message += `Students in Incubation:\n`;
+        incubationStudents.forEach((student, index) => {
+          message += `${index + 1}.${student.name}(${student.companies})\n`;
+        });
+        message += `\n`;
+      }
+
+      message += `\n\nPlacement statistics\n${batch}\n\n`;
+      message += `Total no of Students ${totalStudents}\n`;
+      message += `No of placement interested ${placementInterested}\n`;
+      message += `Placement Eligible ${placementEligible}\n`;
+      message += `No of placed count ${placedCount}/${placementEligible}\n\n\n`;
+      message += `Placement percentage\n${placedCount}/${placementEligible}= ${placementPercentage}%\n\n`;
+      message += `Yet to place ${yetToPlace}\n\n`;
+      message += "Thank you all";
+
+      return message;
+    } catch (error) {
+      console.error("Error generating Overall Stats WhatsApp message:", error);
+      return `${getGreeting()}\n\nSo far placed students list\n\nError generating list.`;
+    }
+  };
+
   const handleDeleteCompany = async (companyId) => {
     try {
       const shortlistRes = await axios.delete(
@@ -957,6 +1091,7 @@ const ManageCompanies = () => {
         studentInformationsDetail={studentInformationsDetail}
         totalPlacedStudents={totalPlacedStudents}
         generatePlacedStudentsMessage={generatePlacedStudentsMessage}
+        generateOverallStatsMessage={generateOverallStatsMessage}
         year={year}
       />
 

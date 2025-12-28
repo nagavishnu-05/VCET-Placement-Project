@@ -21,6 +21,7 @@ const RoundInsightsModal = ({
   studentInformationsDetail,
   totalPlacedStudents,
   generatePlacedStudentsMessage,
+  generateOverallStatsMessage,
   year
 }) => {
   if (!showRoundInsights) return null;
@@ -53,6 +54,7 @@ const RoundInsightsModal = ({
               studentInformationsDetail={studentInformationsDetail}
               totalPlacedStudents={totalPlacedStudents}
               generatePlacedStudentsMessage={generatePlacedStudentsMessage}
+              generateOverallStatsMessage={generateOverallStatsMessage}
             />
           ) : showCompanyAnalytics && selectedAnalyticsCompany ? (
             <CompanyAnalyticsView
