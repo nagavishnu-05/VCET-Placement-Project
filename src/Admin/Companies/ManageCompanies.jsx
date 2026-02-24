@@ -183,26 +183,30 @@ const ManageCompanies = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    const form = e.target;
+    const formDataObj = new FormData(e.target);
     const newCompany = {
-      name: form[0].value,
-      description: form[1].value,
-      position: form[2].value,
-      tenth: form[3].value,
-      twelfth: form[4].value,
-      diploma: form[5].value,
-      cgpa: form[6].value,
-      historyofArrears: form[7].value,
-      currentArrears: form[8].value,
-      interviewDate: form[9].value,
-      rounds: form[10].value,
+      name: formDataObj.get("name"),
+      description: formDataObj.get("description"),
+      position: formDataObj.get("position"),
+      tenth: formDataObj.get("tenth"),
+      twelfth: formDataObj.get("twelfth"),
+      diploma: formDataObj.get("diploma"),
+      cgpa: formDataObj.get("cgpa"),
+      historyofArrears: formDataObj.get("historyArrears"),
+      currentArrears: formDataObj.get("currentArrears"),
+      interviewDate: formDataObj.get("interviewDate"),
+      rounds: formDataObj.get("rounds"),
+      includePlaced: formDataObj.get("includePlaced"),
+      allowedCompanies: formDataObj.getAll("allowedCompanies")
     };
     setFormData(newCompany);
 
     try {
-      const studentsRes = await axios.get(
-        `https://vcetplacement.onrender.com/api/student/getStudentInfo?year=${year}`
-      );
+      const [studentsRes, finalPlacedList] = await Promise.all([
+        axios.get(`https://vcetplacement.onrender.com/api/student/getStudentInfo?year=${year}`),
+        fetchFinalSelectedStudents(year)
+      ]);
+
       // Pre-parse criteria to handle empty strings/nulls
       const reqTenth = parseFloat(newCompany.tenth) || 0;
       const reqTwelfth = parseFloat(newCompany.twelfth) || 0;
@@ -211,31 +215,51 @@ const ManageCompanies = () => {
       const reqHOA = newCompany.historyofArrears !== "" && newCompany.historyofArrears !== null ? parseFloat(newCompany.historyofArrears) : Infinity;
       const reqArrear = newCompany.currentArrears !== "" && newCompany.currentArrears !== null ? parseFloat(newCompany.currentArrears) : Infinity;
 
-      const eligible = studentsRes.data.filter(student => {
-        const sTenth = parseFloat(student.studentTenthPercentage) || 0;
-        const sTwelfth = parseFloat(student.studentTwelthPercentage);
-        const sDiploma = parseFloat(student.studentDiploma);
-        const sCGPA = parseFloat(student.studentUGCGPA) || 0;
-        const sArrear = parseFloat(student.studentCurrentArrears) || 0;
-        const sHOA = parseFloat(student.studentHistoryOfArrears) || 0;
-        const sInterest = (student.studentPlacementInterest || "").toLowerCase() === "yes";
+      const processedStudents = studentsRes.data
+        .filter(student => (student.studentPlacementInterest || "").toLowerCase() === "yes")
+        .map(student => {
+          const sTenth = parseFloat(student.studentTenthPercentage) || 0;
+          const sTwelfth = parseFloat(student.studentTwelthPercentage);
+          const sDiploma = parseFloat(student.studentDiploma);
+          const sCGPA = parseFloat(student.studentUGCGPA) || 0;
+          const sArrear = parseFloat(student.studentCurrentArrears) || 0;
+          const sHOA = parseFloat(student.studentHistoryOfArrears) || 0;
 
-        // Logic for academic eligibility:
-        const tenthOk = sTenth >= reqTenth;
-        const cgpaOk = sCGPA >= reqCGPA;
+          // Academic eligibility
+          const tenthOk = sTenth >= reqTenth;
+          const cgpaOk = sCGPA >= reqCGPA;
+          const twelfthOk = !isNaN(sTwelfth) && sTwelfth >= reqTwelfth;
+          const diplomaOk = !isNaN(sDiploma) && sDiploma >= reqDiploma;
+          const academicsOk = twelfthOk || diplomaOk;
+          const arrearOk = sArrear <= reqArrear;
+          const hoaOk = sHOA <= reqHOA;
 
-        // 12th/Diploma check: Student is eligible if (they have 12th and meet req) OR (they have Diploma and meet req)
-        // If a student only has one of them, the other will be NaN and fail that specific check.
-        const twelfthOk = !isNaN(sTwelfth) && sTwelfth >= reqTwelfth;
-        const diplomaOk = !isNaN(sDiploma) && sDiploma >= reqDiploma;
-        const academicsOk = twelfthOk || diplomaOk;
+          // Placement state filtering
+          let placementStateOk = true;
+          const studentPlacements = finalPlacedList.filter(p => {
+            const pStudentId = p.studentId?._id || p.studentId;
+            return pStudentId === student._id;
+          });
+          const isPlacedSomewhere = studentPlacements.length > 0;
 
-        const arrearOk = sArrear <= reqArrear;
-        const hoaOk = sHOA <= reqHOA;
+          if (newCompany.includePlaced === "no") {
+            placementStateOk = !isPlacedSomewhere;
+          } else if (newCompany.includePlaced === "yes") {
+            if (isPlacedSomewhere) {
+              placementStateOk = studentPlacements.some(p => {
+                const pCompanyId = p.companyId?._id || p.companyId;
+                return newCompany.allowedCompanies.includes(pCompanyId);
+              });
+            }
+          }
 
-        return tenthOk && academicsOk && cgpaOk && arrearOk && hoaOk && sInterest;
-      });
-      setEligibleStudents(eligible);
+          const isEligible = tenthOk && academicsOk && cgpaOk && arrearOk && hoaOk && placementStateOk;
+          return { ...student, isEligible };
+        });
+
+      setEligibleStudents(processedStudents);
+      const initiallySelected = processedStudents.filter(s => s.isEligible).map(s => s._id);
+      setSelectedStudents(initiallySelected);
       setShowStudentSelect(true);
     } catch (error) {
       console.error("Error fetching students:", error);
@@ -738,9 +762,11 @@ const ManageCompanies = () => {
     if (showStudentSelect && formData && modalYear) {
       const fetchEligibleStudents = async () => {
         try {
-          const studentsRes = await axios.get(
-            `https://vcetplacement.onrender.com/api/student/getStudentInfo?year=${modalYear}`
-          );
+          const [studentsRes, finalPlacedList] = await Promise.all([
+            axios.get(`https://vcetplacement.onrender.com/api/student/getStudentInfo?year=${modalYear}`),
+            fetchFinalSelectedStudents(modalYear)
+          ]);
+
           // Pre-parse criteria to handle empty strings/nulls
           const reqTenth = parseFloat(formData.tenth) || 0;
           const reqTwelfth = parseFloat(formData.twelfth) || 0;
@@ -749,31 +775,51 @@ const ManageCompanies = () => {
           const reqHOA = formData.historyofArrears !== "" && formData.historyofArrears !== null ? parseFloat(formData.historyofArrears) : Infinity;
           const reqArrear = formData.currentArrears !== "" && formData.currentArrears !== null ? parseFloat(formData.currentArrears) : Infinity;
 
-          const eligible = studentsRes.data.filter(student => {
-            const sTenth = parseFloat(student.studentTenthPercentage) || 0;
-            const sTwelfth = parseFloat(student.studentTwelthPercentage);
-            const sDiploma = parseFloat(student.studentDiploma);
-            const sCGPA = parseFloat(student.studentUGCGPA) || 0;
-            const sArrear = parseFloat(student.studentCurrentArrears) || 0;
-            const sHOA = parseFloat(student.studentHistoryOfArrears) || 0;
-            const sInterest = (student.studentPlacementInterest || "").toLowerCase() === "yes";
+          const processedStudents = studentsRes.data
+            .filter(student => (student.studentPlacementInterest || "").toLowerCase() === "yes")
+            .map(student => {
+              const sTenth = parseFloat(student.studentTenthPercentage) || 0;
+              const sTwelfth = parseFloat(student.studentTwelthPercentage);
+              const sDiploma = parseFloat(student.studentDiploma);
+              const sCGPA = parseFloat(student.studentUGCGPA) || 0;
+              const sArrear = parseFloat(student.studentCurrentArrears) || 0;
+              const sHOA = parseFloat(student.studentHistoryOfArrears) || 0;
 
-            // Logic for academic eligibility:
-            const tenthOk = sTenth >= reqTenth;
-            const cgpaOk = sCGPA >= reqCGPA;
+              // Academic eligibility
+              const tenthOk = sTenth >= reqTenth;
+              const cgpaOk = sCGPA >= reqCGPA;
+              const twelfthOk = !isNaN(sTwelfth) && sTwelfth >= reqTwelfth;
+              const diplomaOk = !isNaN(sDiploma) && sDiploma >= reqDiploma;
+              const academicsOk = twelfthOk || diplomaOk;
+              const arrearOk = sArrear <= reqArrear;
+              const hoaOk = sHOA <= reqHOA;
 
-            // 12th/Diploma check: Student is eligible if (they have 12th and meet req) OR (they have Diploma and meet req)
-            const twelfthOk = !isNaN(sTwelfth) && sTwelfth >= reqTwelfth;
-            const diplomaOk = !isNaN(sDiploma) && sDiploma >= reqDiploma;
-            const academicsOk = twelfthOk || diplomaOk;
+              // Placement state filtering
+              let placementStateOk = true;
+              const studentPlacements = finalPlacedList.filter(p => {
+                const pStudentId = p.studentId?._id || p.studentId;
+                return pStudentId === student._id;
+              });
+              const isPlacedSomewhere = studentPlacements.length > 0;
 
-            const arrearOk = sArrear <= reqArrear;
-            const hoaOk = sHOA <= reqHOA;
+              if (formData.includePlaced === "no") {
+                placementStateOk = !isPlacedSomewhere;
+              } else if (formData.includePlaced === "yes") {
+                if (isPlacedSomewhere) {
+                  placementStateOk = studentPlacements.some(p => {
+                    const pCompanyId = p.companyId?._id || p.companyId;
+                    return formData.allowedCompanies.includes(pCompanyId);
+                  });
+                }
+              }
 
-            return tenthOk && academicsOk && cgpaOk && arrearOk && hoaOk && sInterest;
-          });
-          setEligibleStudents(eligible);
-          setSelectedStudents([]); // Reset selection
+              const isEligible = tenthOk && academicsOk && cgpaOk && arrearOk && hoaOk && placementStateOk;
+              return { ...student, isEligible };
+            });
+
+          setEligibleStudents(processedStudents);
+          const initiallySelected = processedStudents.filter(s => s.isEligible).map(s => s._id);
+          setSelectedStudents(initiallySelected);
         } catch (error) {
           console.error("Error fetching students:", error);
         }
@@ -1138,6 +1184,7 @@ const ManageCompanies = () => {
         showForm={showForm}
         setShowForm={setShowForm}
         handleSubmit={handleSubmit}
+        companies={companies}
       />
 
       <StudentSelectionModal

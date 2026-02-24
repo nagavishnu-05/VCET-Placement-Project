@@ -637,10 +637,6 @@ button[title="Round Insights"]:hover {
   background: #fecaca;
 }
 
-.admin-modal-table td[class*="round-status"] {
-  /* No additional padding or styling here to avoid conflict with the span's styling */
-  /* The span itself will provide all the visual button properties */
-}
 
 /* Form Input Styles */
 .admin-form-input {
@@ -1066,4 +1062,145 @@ button[title="Round Insights"]:hover {
   -webkit-backdrop-filter: blur(12px) !important;
   border: 1px solid rgba(255, 255, 255, 0.3) !important;
   box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2) !important;
+}
+
+/* Enhanced Company Selection UI */
+.company-selection-container {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-top: 0.5rem;
+  width: 100%;
+}
+
+.company-selection-search {
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+.company-selection-search input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: #1e293b;
+  transition: all 0.3s ease;
+}
+
+.company-selection-search input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.company-selection-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  gap: 1rem;
+}
+
+.company-selection-controls span {
+  font-size: 0.85rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.selection-toggle-btn {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.selection-toggle-btn:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+.company-chips-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.75rem;
+  max-height: 250px;
+  overflow-y: auto;
+  padding: 0.5rem;
+  background: rgba(248, 250, 252, 0.5);
+  border-radius: 8px;
+  border: 1px inset rgba(0, 0, 0, 0.05);
+}
+
+.company-chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.6rem 0.8rem;
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: center;
+  user-select: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.company-chip span {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #475569;
+  z-index: 1;
+}
+
+.company-chip:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  transform: translateY(-1px);
+}
+
+.company-chip.selected {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+.company-chip.selected span {
+  color: white;
+}
+
+.company-chip.selected::after {
+  content: '✓';
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Custom Scrollbar for the grid */
+.company-chips-grid::-webkit-scrollbar {
+  width: 6px;
+}
+
+.company-chips-grid::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.company-chips-grid::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+.company-chips-grid::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }

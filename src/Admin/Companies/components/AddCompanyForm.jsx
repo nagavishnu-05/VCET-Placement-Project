@@ -1,7 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import { FaTimes } from "react-icons/fa";
 
-const AddCompanyForm = ({ showForm, setShowForm, handleSubmit }) => {
+const AddCompanyForm = ({ showForm, setShowForm, handleSubmit, companies }) => {
+  const [includePlaced, setIncludePlaced] = useState("no");
+  const [selectedCompanies, setSelectedCompanies] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+
   if (!showForm) return null;
 
   return (
@@ -145,6 +149,83 @@ const AddCompanyForm = ({ showForm, setShowForm, handleSubmit }) => {
                     placeholder="Enter current arrears"
                   />
                 </div>
+              </div>
+
+              {/* Placement Inclusion Section */}
+              <div className="admin-form-row">
+                <div className="admin-form-group">
+                  <label htmlFor="includePlaced">Include Already Placed Students?</label>
+                  <select
+                    id="includePlaced"
+                    name="includePlaced"
+                    className="admin-form-input"
+                    value={includePlaced}
+                    onChange={(e) => setIncludePlaced(e.target.value)}
+                  >
+                    <option value="no">No</option>
+                    <option value="yes">Yes</option>
+                  </select>
+                </div>
+
+                {includePlaced === "yes" && (
+                  <div className="admin-form-group" style={{ gridColumn: 'span 2' }}>
+                    <label>Allow Students Placed In:</label>
+                    <div className="company-selection-container">
+                      <div className="company-selection-search">
+                        <input
+                          type="text"
+                          placeholder="Search companies..."
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                      </div>
+
+                      <div className="company-selection-controls">
+                        <span>{selectedCompanies.length} companies selected</span>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button
+                            type="button"
+                            className="selection-toggle-btn"
+                            onClick={() => setSelectedCompanies(companies.map(c => c._id))}
+                          >
+                            Select All
+                          </button>
+                          <button
+                            type="button"
+                            className="selection-toggle-btn"
+                            onClick={() => setSelectedCompanies([])}
+                          >
+                            Deselect
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="company-chips-grid">
+                        {companies
+                          .filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                          .map((company) => (
+                            <div
+                              key={company._id}
+                              className={`company-chip ${selectedCompanies.includes(company._id) ? 'selected' : ''}`}
+                              onClick={() => {
+                                setSelectedCompanies(prev =>
+                                  prev.includes(company._id)
+                                    ? prev.filter(id => id !== company._id)
+                                    : [...prev, company._id]
+                                );
+                              }}
+                            >
+                              <span>{company.name}</span>
+                            </div>
+                          ))}
+                      </div>
+
+                      {/* Hidden inputs to make sure FormData picks up the selected companies */}
+                      {selectedCompanies.map(id => (
+                        <input key={id} type="hidden" name="allowedCompanies" value={id} />
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="admin-form-row">
