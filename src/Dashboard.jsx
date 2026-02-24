@@ -34,6 +34,7 @@ function Dashboard() {
 
       const data = await res.json().catch(() => ({}));
       if (res.ok && data?.ok) {
+        localStorage.setItem("isAdminLoggedIn", "true");
         navigate("/AdminDashboard");
       } else {
         alert(data?.error || 'Invalid Admin ID or Password');

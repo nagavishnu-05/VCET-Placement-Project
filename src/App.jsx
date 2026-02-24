@@ -3,6 +3,7 @@ import Dashboard from './Dashboard';
 import AdminDashboard from './AdminDashboard';
 import ManageCompanies from './Admin/Companies/ManageCompanies';
 import ManageStudents from './Admin/Students/ManageStudents';
+import ProtectedRoute from './components/ProtectedRoute';
 import './App.css'
 
 function App() {
@@ -10,9 +11,23 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<Dashboard />} />
-        <Route path="/AdminDashboard" element={<AdminDashboard />} />
-        <Route path="/admin/companies" element={<ManageCompanies />} />
-        <Route path="/admin/students" element={<ManageStudents />} />
+
+        {/* Protected Admin Routes */}
+        <Route path="/AdminDashboard" element={
+          <ProtectedRoute>
+            <AdminDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/companies" element={
+          <ProtectedRoute>
+            <ManageCompanies />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/students" element={
+          <ProtectedRoute>
+            <ManageStudents />
+          </ProtectedRoute>
+        } />
       </Routes>
     </Router>
   );

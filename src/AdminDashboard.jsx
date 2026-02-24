@@ -48,6 +48,7 @@ const AdminDashboard = () => {
   }, []);
 
   const handleLogout = () => {
+    localStorage.removeItem("isAdminLoggedIn");
     window.location.href = "/";
   };
 
