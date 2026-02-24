@@ -6,6 +6,7 @@ import CSE from "./assets/CSE LOGO.jpg";
 import { FaUser, FaLock, FaUserShield } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 import Loader from "./components/Loader";
+import AboutUsModal from "./components/AboutUsModal";
 import "./styles/Dashboard.css";
 
 function Dashboard() {
@@ -15,6 +16,7 @@ function Dashboard() {
 
   const [isStudentLogin, setIsStudentLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [showAboutModal, setShowAboutModal] = useState(false);
   const navigate = useNavigate();
 
 
@@ -109,94 +111,111 @@ function Dashboard() {
               </div>
             </div>
 
-            {/* Login Form Section */}
-            <div className="login-form-container">
-              <div className="toggle-container">
-                <button
-                  className={`toggle-button ${isStudentLogin ? 'active' : ''}`}
-                  onClick={() => setIsStudentLogin(true)}
-                >
-                  Student Login
-                </button>
-                <button
-                  className={`toggle-button ${!isStudentLogin ? 'active' : ''}`}
-                  onClick={() => setIsStudentLogin(false)}
-                >
-                  Admin Login
-                </button>
-              </div>
-
-              {/* Student Login */}
-              <div className={`login-form student ${isStudentLogin ? 'active' : ''}`}>
-                <h2>Student Portal</h2>
-                <form>
-                  <div className="form-group">
-                    <span className="input-icon"><FaUser /></span>
-                    <input
-                      type="text"
-                      placeholder="Student ID"
-                      className="input-field"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <span className="input-icon"><FaLock /></span>
-                    <input
-                      type="password"
-                      placeholder="Password"
-                      className="input-field"
-                    />
-                  </div>
+            {/* Login Form & About Us Section */}
+            <div className="login-column">
+              <div className="login-form-container">
+                <div className="toggle-container">
                   <button
-                    type="submit"
-                    className="login-button"
+                    className={`toggle-button ${isStudentLogin ? 'active' : ''}`}
+                    onClick={() => setIsStudentLogin(true)}
                   >
-                    Login
+                    Student Login
                   </button>
-                </form>
-                <div className="mt-4 text-center">
-                  <p className="text-white">
-                    New student? <Link to="/register" className="register-link">Register here</Link>
-                  </p>
+                  <button
+                    className={`toggle-button ${!isStudentLogin ? 'active' : ''}`}
+                    onClick={() => setIsStudentLogin(false)}
+                  >
+                    Admin Login
+                  </button>
+                </div>
+
+                {/* Student Login */}
+                <div className={`login-form student ${isStudentLogin ? 'active' : ''}`}>
+                  <h2>Student Portal</h2>
+                  <form>
+                    <div className="form-group">
+                      <span className="input-icon"><FaUser /></span>
+                      <input
+                        type="text"
+                        placeholder="Student ID"
+                        className="input-field"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <span className="input-icon"><FaLock /></span>
+                      <input
+                        type="password"
+                        placeholder="Password"
+                        className="input-field"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      className="login-button"
+                    >
+                      Login
+                    </button>
+                  </form>
+                </div>
+
+                {/* Admin Login */}
+                <div className={`login-form admin ${!isStudentLogin ? 'active' : ''}`}>
+                  <h2>Admin Portal</h2>
+                  <form onSubmit={handleAdminLogin}>
+                    <div className="form-group">
+                      <span className="input-icon"><FaUserShield /></span>
+                      <input
+                        type="text"
+                        name="adminId"
+                        placeholder="Admin ID"
+                        className="input-field"
+                        required
+                      />
+                    </div>
+                    <div className="form-group">
+                      <span className="input-icon"><FaLock /></span>
+                      <input
+                        type="password"
+                        name="password"
+                        placeholder="Password"
+                        className="input-field"
+                        required
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      className="login-button"
+                    >
+                      Login
+                    </button>
+                  </form>
                 </div>
               </div>
 
-              {/* Admin Login */}
-              <div className={`login-form admin ${!isStudentLogin ? 'active' : ''}`}>
-                <h2>Admin Portal</h2>
-                <form onSubmit={handleAdminLogin}>
-                  <div className="form-group">
-                    <span className="input-icon"><FaUserShield /></span>
-                    <input
-                      type="text"
-                      name="adminId"
-                      placeholder="Admin ID"
-                      className="input-field"
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <span className="input-icon"><FaLock /></span>
-                    <input
-                      type="password"
-                      name="password"
-                      placeholder="Password"
-                      className="input-field"
-                      required
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    className="login-button"
-                  >
-                    Login
-                  </button>
-                </form>
+              {/* About Us Card */}
+              <div className="about-us-wrapper">
+                <span className="about-us-icon">✦</span>
+                <div className="about-us-text">
+                  <p className="about-us-label">Learn More</p>
+                  <p className="about-us-desc">Meet the Team</p>
+                </div>
+                <button
+                  type="button"
+                  className="about-us-button"
+                  onClick={() => setShowAboutModal(true)}
+                >
+                  About Us
+                </button>
               </div>
             </div>
           </div>
         </div>
       </div>
       {isLoading && <Loader message="Logging in..." />}
+      <AboutUsModal
+        isOpen={showAboutModal}
+        onClose={() => setShowAboutModal(false)}
+      />
     </>
   );
 }
