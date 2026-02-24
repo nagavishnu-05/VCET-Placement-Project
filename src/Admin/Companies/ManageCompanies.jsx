@@ -55,6 +55,8 @@ const ManageCompanies = () => {
 
 
 
+  const [deleteConfirm, setDeleteConfirm] = useState({ show: false, companyId: null, companyName: "" });
+
   console.log(year);
   console.log(batch);
   const handleLogout = () => {
@@ -201,33 +203,37 @@ const ManageCompanies = () => {
       const studentsRes = await axios.get(
         `https://vcetplacement.onrender.com/api/student/getStudentInfo?year=${year}`
       );
+      // Pre-parse criteria to handle empty strings/nulls
+      const reqTenth = parseFloat(newCompany.tenth) || 0;
+      const reqTwelfth = parseFloat(newCompany.twelfth) || 0;
+      const reqDiploma = parseFloat(newCompany.diploma) || 0;
+      const reqCGPA = parseFloat(newCompany.cgpa) || 0;
+      const reqHOA = newCompany.historyofArrears !== "" && newCompany.historyofArrears !== null ? parseFloat(newCompany.historyofArrears) : Infinity;
+      const reqArrear = newCompany.currentArrears !== "" && newCompany.currentArrears !== null ? parseFloat(newCompany.currentArrears) : Infinity;
+
       const eligible = studentsRes.data.filter(student => {
-        const tenth = parseFloat(student.studentTenthPercentage) || 0;
-        const twelfth = parseFloat(student.studentTwelthPercentage);
-        const diploma = parseFloat(student.studentDiploma);
-        const cgpa = parseFloat(student.studentUGCGPA) || 0;
-        const arrear = parseFloat(student.studentCurrentArrears) || 0;
-        const hoa = parseFloat(student.studentHistoryOfArrears) || 0;
+        const sTenth = parseFloat(student.studentTenthPercentage) || 0;
+        const sTwelfth = parseFloat(student.studentTwelthPercentage);
+        const sDiploma = parseFloat(student.studentDiploma);
+        const sCGPA = parseFloat(student.studentUGCGPA) || 0;
+        const sArrear = parseFloat(student.studentCurrentArrears) || 0;
+        const sHOA = parseFloat(student.studentHistoryOfArrears) || 0;
+        const sInterest = (student.studentPlacementInterest || "").toLowerCase() === "yes";
 
-        const twelfthValid = !isNaN(twelfth) && twelfth >= parseFloat(newCompany.twelfth);
-        const diplomaValid = !isNaN(diploma) && diploma >= parseFloat(newCompany.diploma);
+        // Logic for academic eligibility:
+        const tenthOk = sTenth >= reqTenth;
+        const cgpaOk = sCGPA >= reqCGPA;
 
-        // If historyofArrears or currentArrears is empty/null, don't filter by it (allow all students)
-        const historyArrearCheck = newCompany.historyofArrears === '' || newCompany.historyofArrears === null
-          ? true
-          : hoa <= parseFloat(newCompany.historyofArrears);
+        // 12th/Diploma check: Student is eligible if (they have 12th and meet req) OR (they have Diploma and meet req)
+        // If a student only has one of them, the other will be NaN and fail that specific check.
+        const twelfthOk = !isNaN(sTwelfth) && sTwelfth >= reqTwelfth;
+        const diplomaOk = !isNaN(sDiploma) && sDiploma >= reqDiploma;
+        const academicsOk = twelfthOk || diplomaOk;
 
-        const currentArrearCheck = newCompany.currentArrears === '' || newCompany.currentArrears === null
-          ? true
-          : arrear <= parseFloat(newCompany.currentArrears);
+        const arrearOk = sArrear <= reqArrear;
+        const hoaOk = sHOA <= reqHOA;
 
-        return (
-          tenth >= parseFloat(newCompany.tenth) &&
-          (twelfthValid || diplomaValid) &&
-          cgpa >= parseFloat(newCompany.cgpa) &&
-          currentArrearCheck &&
-          historyArrearCheck
-        );
+        return tenthOk && academicsOk && cgpaOk && arrearOk && hoaOk && sInterest;
       });
       setEligibleStudents(eligible);
       setShowStudentSelect(true);
@@ -675,7 +681,14 @@ const ManageCompanies = () => {
   };
 
   const handleDeleteCompany = async (companyId) => {
+    const company = companies.find(c => c._id === companyId);
+    setDeleteConfirm({ show: true, companyId, companyName: company?.name || "this company" });
+  };
+
+  const confirmDeleteCompany = async () => {
+    const { companyId } = deleteConfirm;
     try {
+      setIsLoading(true);
       const shortlistRes = await axios.delete(
         `https://vcetplacement.onrender.com/api/shortlist/deleteshortlist/${year}/${companyId}`
       );
@@ -684,9 +697,14 @@ const ManageCompanies = () => {
         `https://vcetplacement.onrender.com/api/company/deletecompany/${companyId}?year=${year}`
       );
       console.log("Company delete:", companyRes.data);
+      toast.success("Company deleted successfully");
       setReloadTrigger((prev) => !prev);
     } catch (error) {
       console.error("Failed to delete company:", error.response?.data || error.message);
+      toast.error("Failed to delete company");
+    } finally {
+      setIsLoading(false);
+      setDeleteConfirm({ show: false, companyId: null, companyName: "" });
     }
   };
 
@@ -723,33 +741,36 @@ const ManageCompanies = () => {
           const studentsRes = await axios.get(
             `https://vcetplacement.onrender.com/api/student/getStudentInfo?year=${modalYear}`
           );
+          // Pre-parse criteria to handle empty strings/nulls
+          const reqTenth = parseFloat(formData.tenth) || 0;
+          const reqTwelfth = parseFloat(formData.twelfth) || 0;
+          const reqDiploma = parseFloat(formData.diploma) || 0;
+          const reqCGPA = parseFloat(formData.cgpa) || 0;
+          const reqHOA = formData.historyofArrears !== "" && formData.historyofArrears !== null ? parseFloat(formData.historyofArrears) : Infinity;
+          const reqArrear = formData.currentArrears !== "" && formData.currentArrears !== null ? parseFloat(formData.currentArrears) : Infinity;
+
           const eligible = studentsRes.data.filter(student => {
-            const tenth = parseFloat(student.studentTenthPercentage) || 0;
-            const twelfth = parseFloat(student.studentTwelthPercentage);
-            const diploma = parseFloat(student.studentDiploma);
-            const cgpa = parseFloat(student.studentUGCGPA) || 0;
-            const arrear = parseFloat(student.studentCurrentArrears) || 0;
-            const hoa = parseFloat(student.studentHistoryOfArrears) || 0;
+            const sTenth = parseFloat(student.studentTenthPercentage) || 0;
+            const sTwelfth = parseFloat(student.studentTwelthPercentage);
+            const sDiploma = parseFloat(student.studentDiploma);
+            const sCGPA = parseFloat(student.studentUGCGPA) || 0;
+            const sArrear = parseFloat(student.studentCurrentArrears) || 0;
+            const sHOA = parseFloat(student.studentHistoryOfArrears) || 0;
+            const sInterest = (student.studentPlacementInterest || "").toLowerCase() === "yes";
 
-            const twelfthValid = !isNaN(twelfth) && twelfth >= parseFloat(formData.twelfth);
-            const diplomaValid = !isNaN(diploma) && diploma >= parseFloat(formData.diploma);
+            // Logic for academic eligibility:
+            const tenthOk = sTenth >= reqTenth;
+            const cgpaOk = sCGPA >= reqCGPA;
 
-            // If historyofArrears or currentArrears is empty/null, don't filter by it (allow all students)
-            const historyArrearCheck = formData.historyofArrears === '' || formData.historyofArrears === null
-              ? true
-              : hoa <= parseFloat(formData.historyofArrears);
+            // 12th/Diploma check: Student is eligible if (they have 12th and meet req) OR (they have Diploma and meet req)
+            const twelfthOk = !isNaN(sTwelfth) && sTwelfth >= reqTwelfth;
+            const diplomaOk = !isNaN(sDiploma) && sDiploma >= reqDiploma;
+            const academicsOk = twelfthOk || diplomaOk;
 
-            const currentArrearCheck = formData.currentArrears === '' || formData.currentArrears === null
-              ? true
-              : arrear <= parseFloat(formData.currentArrears);
+            const arrearOk = sArrear <= reqArrear;
+            const hoaOk = sHOA <= reqHOA;
 
-            return (
-              tenth >= parseFloat(formData.tenth) &&
-              (twelfthValid || diplomaValid) &&
-              cgpa >= parseFloat(formData.cgpa) &&
-              currentArrearCheck &&
-              historyArrearCheck
-            );
+            return tenthOk && academicsOk && cgpaOk && arrearOk && hoaOk && sInterest;
           });
           setEligibleStudents(eligible);
           setSelectedStudents([]); // Reset selection
@@ -1132,6 +1153,33 @@ const ManageCompanies = () => {
         setReloadTrigger={setReloadTrigger}
         setShowForm={setShowForm}
       />
+
+      {deleteConfirm.show && (
+        <div className="admin-modal-overlay" style={{ backdropFilter: 'blur(8px)', backgroundColor: 'rgba(0, 0, 0, 0.4)' }}>
+          <div className="admin-modal-content confirmation-modal glassmorphism" style={{ maxWidth: '400px', padding: '2.5rem', textAlign: 'center', background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255, 255, 255, 0.3)' }}>
+            <h2 style={{ marginBottom: '1rem', color: '#111827', fontWeight: '800' }}>Confirm Deletion</h2>
+            <p style={{ marginBottom: '2rem', color: '#374151', fontSize: '1.05rem' }}>
+              Are you sure you want to delete <strong>{deleteConfirm.companyName}</strong>? <br /><span style={{ fontSize: '0.9rem', color: '#ef4444' }}>This action cannot be undone.</span>
+            </p>
+            <div style={{ display: 'flex', gap: '1.25rem', justifyContent: 'center' }}>
+              <button
+                className="admin-cancel-button"
+                onClick={() => setDeleteConfirm({ show: false, companyId: null, companyName: "" })}
+                style={{ margin: 0, padding: '0.8rem 1.8rem', borderRadius: '12px', fontWeight: '600', background: 'rgba(255, 255, 255, 0.5)', border: '1px solid rgba(0,0,0,0.1)' }}
+              >
+                No, Keep it
+              </button>
+              <button
+                className="admin-nav-button logout"
+                onClick={confirmDeleteCompany}
+                style={{ margin: 0, padding: '0.8rem 1.8rem', borderRadius: '12px', fontWeight: '600', background: 'linear-gradient(135deg, #ef4444, #b91c1c)', border: 'none', boxShadow: '0 4px 12px rgba(220, 38, 38, 0.3)' }}
+              >
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {(isLoading || isDataLoading) && <Loader message="Loading data..." />}
     </>
   );

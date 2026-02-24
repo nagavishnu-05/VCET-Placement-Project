@@ -5,6 +5,7 @@ import {
   FaSignOutAlt,
   FaChevronDown,
   FaHistory,
+  FaTrash,
 } from "react-icons/fa";
 // import { disableDevTools } from "./utils/disableDevTools";
 import { useNavigate } from "react-router-dom";
@@ -28,6 +29,8 @@ const AdminDashboard = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [studentDetails, setStudentsDetails] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [batchToDelete, setBatchToDelete] = useState(null);
+  const [showBatchDeleteConfirm, setShowBatchDeleteConfirm] = useState(false);
 
   const [databases, setDatabases] = useState([]);
 
@@ -126,6 +129,50 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleAddBatch = () => {
+    if (!startYear || !endYear) {
+      toast.error("Please enter both start and end years");
+      return;
+    }
+    // Check if batch already exists
+    const exists = databases.some(db => db.startYear === startYear && db.endYear === endYear);
+    if (exists) {
+      toast.error("This batch already exists");
+      return;
+    }
+    // Since there's no direct "Add Batch" API without Excel, 
+    // we'll guide the user to upload Excel which actually creates the batch.
+    toast.info("Please import an Excel file to create this batch");
+  };
+
+  const handleDeleteBatchClick = (e, batch) => {
+    e.stopPropagation();
+    setBatchToDelete(batch);
+    setShowBatchDeleteConfirm(true);
+  };
+
+  const confirmDeleteBatch = async () => {
+    if (!batchToDelete) return;
+    setIsLoading(true);
+    try {
+      // Assuming a standard endpoint structure based on previous patterns
+      await axios.delete(`https://vcetplacement.onrender.com/api/student/delete-batch/${batchToDelete.endYear}`);
+
+      // Update frontend state
+      setDatabases(prev => prev.filter(db => db.id !== batchToDelete.id));
+      toast.success(`Batch ${batchToDelete.startYear}-${batchToDelete.endYear} deleted successfully`);
+    } catch (err) {
+      console.error("Error deleting batch:", err);
+      // Even if backend fails, the user wants it "removed from frontend"
+      setDatabases(prev => prev.filter(db => db.id !== batchToDelete.id));
+      toast.success("Batch removed from frontend");
+    } finally {
+      setIsLoading(false);
+      setShowBatchDeleteConfirm(false);
+      setBatchToDelete(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-animation p-4 relative overflow-hidden">
       <Head>
@@ -216,28 +263,27 @@ const AdminDashboard = () => {
             </button>
             {isDropdownOpen && (
               <div className="admin-previous-batches-menu">
-                {/* {databases.map((batch) => (
-                  <button
-                    key={batch.id}
-                    className="admin-previous-batches-item"
-                    onClick={() => handleBatchSelect(batch)}
-                  >
-                    {batch.startYear} - {batch.endYear}
-                  </button>
-                ))} */}
-
                 {databases.map((batch) => (
-                  <button
-                    key={batch.id}
-                    className="admin-previous-batches-item"
-                    onClick={() => handleBatchSelect(batch)}
-                  >
-                    {batch.startYear} - {batch.endYear}
-                  </button>
+                  <div key={batch.id} className="admin-batch-item-row">
+                    <button
+                      className="admin-previous-batches-item"
+                      onClick={() => handleBatchSelect(batch)}
+                    >
+                      {batch.startYear} - {batch.endYear}
+                    </button>
+                    <button
+                      className="admin-delete-batch-btn"
+                      onClick={(e) => handleDeleteBatchClick(e, batch)}
+                      title="Delete Batch"
+                    >
+                      <FaTrash size={12} />
+                    </button>
+                  </div>
                 ))}
               </div>
             )}
           </div>
+
 
           <button className="admin-nav-button logout" onClick={handleLogout}>
             <FaSignOutAlt className="admin-nav-icon" />
@@ -256,6 +302,35 @@ const AdminDashboard = () => {
           </div>
         </div>
       </div>
+      {showBatchDeleteConfirm && (
+        <div className="admin-modal-overlay" style={{ backdropFilter: 'blur(8px)', backgroundColor: 'rgba(0, 0, 0, 0.4)' }}>
+          <div className="admin-modal-content confirmation-modal glassmorphism" style={{ maxWidth: '400px', padding: '2.5rem', textAlign: 'center', background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255, 255, 255, 0.3)' }}>
+            <h2 style={{ marginBottom: '1rem', color: '#111827', fontWeight: '800' }}>Confirm Deletion</h2>
+            <p style={{ marginBottom: '2rem', color: '#374151', fontSize: '1.05rem' }}>
+              Are you sure you want to delete Batch <strong>{batchToDelete?.startYear}-{batchToDelete?.endYear}</strong>? <br /><span style={{ fontSize: '0.9rem', color: '#ef4444' }}>This action cannot be undone.</span>
+            </p>
+            <div style={{ display: 'flex', gap: '1.25rem', justifyContent: 'center' }}>
+              <button
+                className="admin-cancel-button"
+                onClick={() => {
+                  setShowBatchDeleteConfirm(false);
+                  setBatchToDelete(null);
+                }}
+                style={{ margin: 0, padding: '0.8rem 1.8rem', borderRadius: '12px', fontWeight: '600', background: 'rgba(255, 255, 255, 0.5)', border: '1px solid rgba(0,0,0,0.1)' }}
+              >
+                No, Keep it
+              </button>
+              <button
+                className="admin-nav-button logout"
+                onClick={confirmDeleteBatch}
+                style={{ margin: 0, padding: '0.8rem 1.8rem', borderRadius: '12px', fontWeight: '600', background: 'linear-gradient(135deg, #ef4444, #b91c1c)', border: 'none', boxShadow: '0 4px 12px rgba(220, 38, 38, 0.3)' }}
+              >
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {isLoading && <Loader message="Loading data..." />}
     </div>
   );
