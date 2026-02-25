@@ -35,9 +35,9 @@ const AboutUsModal = ({ isOpen, onClose }) => {
             contribution: "Optimization",
             icon: <FaPalette />,
             gradient: "linear-gradient(135deg, #818cf8, #4f46e5)",
-            github: "https://github.com/",
-            linkedin: "https://linkedin.com/in/",
-            mail: "mailto:",
+            github: "https://github.com/manavendrashailesha",
+            linkedin: "https://www.linkedin.com/in/a-manavendra-shailesh/",
+            mail: "mailto:manavendrashailesa@gmail.com",
         },
     ];
 
@@ -48,7 +48,7 @@ const AboutUsModal = ({ isOpen, onClose }) => {
             contribution: "API Design & Database Schema",
             icon: <FaServer />,
             gradient: "linear-gradient(135deg, #f59e0b, #d97706)",
-            github: "https://github.com/achuthan-18",
+            github: "https://github.com/achu1566",
             linkedin: "https://www.linkedin.com/in/achuthan-t-b-1522972a2/",
             mail: "mailto:achuthan1566@gmail.com",
         },
@@ -167,3 +167,4 @@ const AboutUsModal = ({ isOpen, onClose }) => {
 };
 
 export default AboutUsModal;
+
