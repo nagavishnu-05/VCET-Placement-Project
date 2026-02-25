@@ -217,7 +217,7 @@ const ManageCompanies = () => {
       const reqArrear = newCompany.currentArrears !== "" && newCompany.currentArrears !== null ? parseFloat(newCompany.currentArrears) : Infinity;
 
       const processedStudents = studentsRes.data
-        .filter(student => (student.studentPlacementInterest || "").toLowerCase() === "yes")
+        .filter(student => (student.studentPlacementInterest || "").trim().toLowerCase() === "yes")
         .map(student => {
           const sTenth = parseFloat(student.studentTenthPercentage) || 0;
           const sTwelfth = parseFloat(student.studentTwelthPercentage);
@@ -413,7 +413,10 @@ const ManageCompanies = () => {
       console.log("📊 Is array?", Array.isArray(finalSelectedStudents));
 
       // Get unique student IDs (a student may be placed in multiple companies)
-      const uniqueStudentIds = new Set(finalSelectedStudents.map(student => student.studentId));
+      const uniqueStudentIds = new Set(finalSelectedStudents.map(student => {
+        // Handle both object and string ID formats
+        return student.studentId?._id || student.studentId;
+      }).filter(id => id)); // Filter out null/undefined IDs
       const placedCount = uniqueStudentIds.size;
 
       console.log("📊 Total entries (including duplicates):", finalSelectedStudents.length);
@@ -521,8 +524,8 @@ const ManageCompanies = () => {
 
       // Calculate stats based on studentPlacementInterest
       // Assuming it is "Yes" or "No" (case-insensitive check)
-      const placementInterested = studentDetails.filter(s => s.studentPlacementInterest && s.studentPlacementInterest.toLowerCase() === 'yes').length;
-      const placementEligible = studentDetails.filter(s => s.studentPlacementInterest && s.studentPlacementInterest.toLowerCase() === 'yes').length; // As per user, this field covers both
+      const placementInterested = studentDetails.filter(s => s.studentPlacementInterest && s.studentPlacementInterest.trim().toLowerCase() === 'yes').length;
+      const placementEligible = placementInterested; // Consistent with user requirement
 
       const placedCount = totalPlaced;
       const yetToPlace = placementEligible - placedCount;
@@ -652,7 +655,7 @@ const ManageCompanies = () => {
 
       // Calculate placement statistics
       const totalStudents = studentDetails.length;
-      const placementInterested = studentDetails.filter(s => s.studentPlacementInterest && s.studentPlacementInterest.toLowerCase() === 'yes').length;
+      const placementInterested = studentDetails.filter(s => s.studentPlacementInterest && s.studentPlacementInterest.trim().toLowerCase() === 'yes').length;
       const placementEligible = placementInterested; // As per user requirement
       const placedCount = placedStudentsData.length;
       const yetToPlace = placementEligible - placedCount;
@@ -777,7 +780,7 @@ const ManageCompanies = () => {
           const reqArrear = formData.currentArrears !== "" && formData.currentArrears !== null ? parseFloat(formData.currentArrears) : Infinity;
 
           const processedStudents = studentsRes.data
-            .filter(student => (student.studentPlacementInterest || "").toLowerCase() === "yes")
+            .filter(student => (student.studentPlacementInterest || "").trim().toLowerCase() === "yes")
             .map(student => {
               const sTenth = parseFloat(student.studentTenthPercentage) || 0;
               const sTwelfth = parseFloat(student.studentTwelthPercentage);

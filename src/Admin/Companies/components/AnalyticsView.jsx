@@ -13,7 +13,7 @@ const AnalyticsView = ({
   generateOverallStatsMessage
 }) => {
   const placementInterestedCount = studentInformationsDetail.filter(
-    (s) => s.studentPlacementInterest && s.studentPlacementInterest.toLowerCase() === "yes"
+    (s) => s.studentPlacementInterest && s.studentPlacementInterest.trim().toLowerCase() === "yes"
   ).length;
 
   return (
