@@ -325,8 +325,15 @@ const ManageStudents = () => {
           );
 
           if (foundData) {
-            row[globalCompany.name] =
-              foundData.finalResult === true ? "Selected" : "Rejected";
+            // Calculate rounds cleared
+            const roundsCleared = foundData.rounds ? Object.values(foundData.rounds).filter(status =>
+              status === true ||
+              status === "selected" ||
+              status === "Accepted" ||
+              status === "accepted"
+            ).length : 0;
+
+            row[globalCompany.name] = roundsCleared;
           } else {
             row[globalCompany.name] = "     -      ";
           }

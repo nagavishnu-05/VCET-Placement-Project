@@ -25,9 +25,9 @@ const AboutUsModal = ({ isOpen, onClose }) => {
             contribution: "Component Styling",
             icon: <FaCode />,
             gradient: "linear-gradient(135deg, #38bdf8, #0284c7)",
-            github: "https://github.com/",
-            linkedin: "https://linkedin.com/in/",
-            mail: "mailto:",
+            github: "https://github.com/Mukesh0307",
+            linkedin: "https://www.linkedin.com/in/mukesh-kanna-m-62923a326/",
+            mail: "mailto:24lcseb01mukeshkanna@gmail.com",
         },
         {
             name: "Manavendra Shailesh A",
