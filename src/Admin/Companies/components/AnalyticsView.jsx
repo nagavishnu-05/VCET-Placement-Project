@@ -12,6 +12,10 @@ const AnalyticsView = ({
   generatePlacedStudentsMessage,
   generateOverallStatsMessage
 }) => {
+  const placementInterestedCount = studentInformationsDetail.filter(
+    (s) => s.studentPlacementInterest && s.studentPlacementInterest.toLowerCase() === "yes"
+  ).length;
+
   return (
     <div className="analytics-container">
       {/* Round-wise Analytics with Charts */}
@@ -237,6 +241,10 @@ const AnalyticsView = ({
             <p className="stat-value">{studentInformationsDetail.length}</p>
           </div>
           <div className="stat-item">
+            <p className="stat-label">Placement Interested</p>
+            <p className="stat-value">{placementInterestedCount}</p>
+          </div>
+          <div className="stat-item">
             <p className="stat-label">Total Placed Students</p>
             <p className="stat-value">
               {totalPlacedStudents.loading ? 'Loading...' : totalPlacedStudents.count}
@@ -247,8 +255,8 @@ const AnalyticsView = ({
             <p className="stat-value">
               {totalPlacedStudents.loading
                 ? '...'
-                : studentInformationsDetail.length > 0
-                  ? ((totalPlacedStudents.count / studentInformationsDetail.length) * 100).toFixed(1) + '%'
+                : placementInterestedCount > 0
+                  ? ((totalPlacedStudents.count / placementInterestedCount) * 100).toFixed(1) + '%'
                   : '0%'}
             </p>
           </div>

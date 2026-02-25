@@ -60,6 +60,7 @@ const ManageCompanies = () => {
   console.log(year);
   console.log(batch);
   const handleLogout = () => {
+    localStorage.removeItem("isAdminLoggedIn");
     window.location.href = "/";
   };
   const [reloadTrigger, setReloadTrigger] = useState(false);

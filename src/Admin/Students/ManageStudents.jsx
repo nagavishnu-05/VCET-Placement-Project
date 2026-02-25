@@ -9,7 +9,7 @@ import CollegeHeader from "../Companies/components/CollegeHeader";
 import StudentNavbar from "./components/StudentNavbar";
 import StudentTable from "./components/StudentTable";
 import StudentRoundsModal from "./components/StudentRoundsModal";
-import Loader from "../../components/Loader"; 
+import Loader from "../../components/Loader";
 
 import "../../styles/ManageStudents.css";
 
@@ -31,6 +31,7 @@ const ManageStudents = () => {
   const [isLoading, setIsLoading] = useState(false); // Added Loading State
 
   const handleLogout = () => {
+    localStorage.removeItem("isAdminLoggedIn");
     window.location.href = "/";
   };
 
@@ -101,15 +102,15 @@ const ManageStudents = () => {
       );
 
       const companiesData = res.data.companies || [];
-      
-      console.log("API Data:", companiesData); 
+
+      console.log("API Data:", companiesData);
 
       const combinedData = {
         ...res.data,
         studentName: student.studentName,
         studentRegisterNumber: student.studentRegisterNumber,
         studentId: student._id,
-        companies: companiesData 
+        companies: companiesData
       };
 
       setStudentView(combinedData);
