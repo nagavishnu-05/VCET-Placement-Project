@@ -72,7 +72,7 @@ const PlacementJourney = () => {
     // Helper to determine definitive status (Selected/Rejected)
     const getStatusInfo = (item) => {
         if (item.finalStatus === "Selected" || item.finalStatus === "Cleared All Rounds") {
-            return { text: "Selected", class: "status-selected", color: "#34d399" };
+            return { text: "Selected", class: "status-selected", color: "#059669" };
         }
 
         const rounds = item.rounds || {};
@@ -81,12 +81,12 @@ const PlacementJourney = () => {
         const allPassed = roundValues.length > 0 && roundValues.every((v) => v === true);
 
         if (hasRejection) {
-            return { text: "Rejected", class: "status-rejected", color: "#f87171" };
+            return { text: "Rejected", class: "status-rejected", color: "#dc2626" };
         } else if (allPassed) {
-            return { text: "Selected", class: "status-selected", color: "#34d399" };
+            return { text: "Selected", class: "status-selected", color: "#059669" };
         } else {
             // Default to Rejected if not explicitly selected/passed (per user request to avoid In Progress)
-            return { text: "Rejected", class: "status-rejected", color: "#f87171" };
+            return { text: "Rejected", class: "status-rejected", color: "#dc2626" };
         }
     };
 
@@ -168,8 +168,9 @@ const PlacementJourney = () => {
             {progress?.finalSelectedCompany && (
                 <div className="sj-banner">
                     <FaTrophy className="sj-banner-icon" />
-                    <div>
-                        <h3>🎉 Placed at {progress.finalSelectedCompany.companyName}</h3>
+                    <div className="sj-banner-content">
+                        <span className="sj-congrats-badge">Congratulations</span>
+                        <h3>Placed at {progress.finalSelectedCompany.companyName}</h3>
                         <p>{progress.finalSelectedCompany.position} — {progress.finalSelectedCompany.role}</p>
                     </div>
                 </div>
@@ -210,7 +211,7 @@ const PlacementJourney = () => {
                                         </div>
                                     )}
 
-                                    <div className="sj-card-status-text">
+                                    <div className="sj-card-status-text" style={{ color: statusInfo.color }}>
                                         {statusInfo.text}
                                     </div>
                                 </div>
@@ -251,7 +252,7 @@ const PlacementJourney = () => {
                                 </div>
                                 <div className="sj-stat-item yellow">
                                     <span className="sj-stat-num">{summary.pendingCount || 0}</span>
-                                    <span className="sj-stat-label">In Progress</span>
+                                    <span className="sj-stat-label">Rejected</span>
                                 </div>
                             </div>
 
