@@ -197,9 +197,8 @@ const StudentRoundsPopup = ({
                           style={{ cursor: "pointer" }}
                         >
                           <span
-                            className={`round-status ${
-                              rounds[`round${i + 1}`] || "rejected"
-                            }`}
+                            className={`round-status ${rounds[`round${i + 1}`] || "rejected"
+                              }`}
                           >
                             {rounds[`round${i + 1}`] || "rejected"}
                           </span>
@@ -239,6 +238,7 @@ const StudentRoundsPopup = ({
                             <option value="Role Offered">Role Offered</option>
                             <option value="Internship">Internship</option>
                             <option value="Incubation">Incubation</option>
+                            <option value="Trainee">Trainee</option>
                           </select>
                         ) : (
                           <span>-</span>

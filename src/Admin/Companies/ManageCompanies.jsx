@@ -534,8 +534,8 @@ const ManageCompanies = () => {
       let message = `${greeting}\n\n`;
       message += `So far placed students :\n\n`;
 
-      // List students by role in specific order: Placed, Internship, Incubation
-      const roleOrder = ["Placed", "Internship", "Incubation"];
+      // List students by role in specific order: Placed, Internship, Incubation, Trainee
+      const roleOrder = ["Placed", "Internship", "Incubation", "Trainee"];
 
       roleOrder.forEach(roleType => {
         if (placementsByRole[roleType] && placementsByRole[roleType].length > 0) {
@@ -604,6 +604,7 @@ const ManageCompanies = () => {
       const placedStudents = []; // Role Offered or no role specified
       const internStudents = []; // Internship
       const incubationStudents = []; // Incubation
+      const traineeStudents = []; // Trainee
 
       placedStudentsData.forEach(student => {
         const studentName = student.studentName;
@@ -613,6 +614,7 @@ const ManageCompanies = () => {
         const placedCompanyNames = [];
         const internCompanyNames = [];
         const incubationCompanyNames = [];
+        const traineeCompanyNames = [];
 
         companies.forEach(company => {
           const companyName = company.companyName;
@@ -622,6 +624,8 @@ const ManageCompanies = () => {
             internCompanyNames.push(companyName);
           } else if (role === "Incubation") {
             incubationCompanyNames.push(companyName);
+          } else if (role === "Trainee") {
+            traineeCompanyNames.push(companyName);
           } else {
             // "Role Offered" or any other role treated as Placed
             placedCompanyNames.push(companyName);
@@ -645,6 +649,12 @@ const ManageCompanies = () => {
           incubationStudents.push({
             name: studentName,
             companies: incubationCompanyNames.join(", ")
+          });
+        }
+        if (traineeCompanyNames.length > 0) {
+          traineeStudents.push({
+            name: studentName,
+            companies: traineeCompanyNames.join(", ")
           });
         }
       });
@@ -687,6 +697,15 @@ const ManageCompanies = () => {
       if (incubationStudents.length > 0) {
         message += `Students in Incubation:\n`;
         incubationStudents.forEach((student, index) => {
+          message += `${index + 1}.${student.name}(${student.companies})\n`;
+        });
+        message += `\n`;
+      }
+
+      // List trainee students if any
+      if (traineeStudents.length > 0) {
+        message += `Students in Trainee:\n`;
+        traineeStudents.forEach((student, index) => {
           message += `${index + 1}.${student.name}(${student.companies})\n`;
         });
         message += `\n`;
