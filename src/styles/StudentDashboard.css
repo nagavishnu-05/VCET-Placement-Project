@@ -221,10 +221,11 @@
   align-items: center;
   gap: 2rem;
   padding: 2.5rem;
-  background: linear-gradient(135deg, rgba(79, 70, 229, 0.15), rgba(124, 58, 237, 0.1));
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.85) 60%, rgba(255, 255, 255, 0.6) 100%);
   border-radius: 20px;
-  border: 1px solid rgba(124, 58, 237, 0.2);
-  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(15px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
   margin-bottom: 2rem;
 }
 
@@ -232,15 +233,17 @@
   width: 100px;
   height: 100px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 3rem;
   font-weight: 800;
-  color: white;
-  box-shadow: 0 6px 25px rgba(79, 70, 229, 0.4);
+  color: #1e293b;
+  /* Dark text on white avatar */
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
   flex-shrink: 0;
+  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .sp-hero-info {
@@ -252,28 +255,19 @@
 .sp-hero-name {
   font-size: 2.2rem;
   font-weight: 800;
-  color: #fff;
+  color: #1e293b;
   margin: 0;
   line-height: 1.2;
 }
 
-.sp-hero-subtitle {
-  font-size: 1.15rem;
-  color: rgba(255, 255, 255, 0.8);
-  margin: 0;
-  font-weight: 500;
+.sp-hero-reg {
+  font-size: 1rem;
+  color: #64748b;
+  font-weight: 600;
+  padding: 0.3rem 0;
 }
 
-.sp-hero-reg {
-  font-size: 0.95rem;
-  color: #93c5fd;
-  font-weight: 600;
-  padding: 0.3rem 0.8rem;
-  background: rgba(96, 165, 250, 0.15);
-  border-radius: 8px;
-  display: inline-block;
-  width: fit-content;
-}
+/* Removing duplicate/legacy hero styles */
 
 .sp-sections {
   display: flex;
@@ -282,12 +276,12 @@
 }
 
 .sp-section {
-  background: rgba(255, 255, 255, 0.1);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.85) 60%, rgba(255, 255, 255, 0.6) 100%);
   border-radius: 20px;
   padding: 2rem;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(15px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
 }
 
 .sp-section-title {
@@ -296,14 +290,15 @@
   gap: 0.7rem;
   font-size: 1.3rem;
   font-weight: 700;
-  color: #fff;
+  color: #1e293b;
   margin: 0 0 1.5rem 0;
   padding-bottom: 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 2px solid #f1f5f9;
 }
 
 .sp-section-icon {
-  color: #60a5fa;
+  color: #2563eb;
+  /* Stronger matching color */
   font-size: 1.2rem;
 }
 
@@ -318,19 +313,21 @@
   align-items: center;
   gap: 1rem;
   padding: 1.2rem;
-  background: rgba(0, 0, 0, 0.15);
+  background: rgba(0, 0, 0, 0.03);
+  /* Milder inner background */
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.05);
   transition: all 0.2s;
 }
 
 .sp-field:hover {
-  background: rgba(0, 0, 0, 0.2);
-  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.1);
 }
 
 .sp-field-icon {
-  color: #60a5fa;
+  color: #3b82f6;
+  /* Matching blue */
   font-size: 1.2rem;
   flex-shrink: 0;
 }
@@ -338,7 +335,8 @@
 .sp-field-label {
   display: block;
   font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: #64748b;
+  /* Professional slate/gray */
   text-transform: uppercase;
   letter-spacing: 0.5px;
   font-weight: 600;
@@ -347,7 +345,8 @@
 .sp-field-value {
   display: block;
   font-size: 1.05rem;
-  color: #fff;
+  color: #1e293b;
+  /* Dark navy/charcoal */
   font-weight: 600;
   margin-top: 0.2rem;
 }
@@ -373,26 +372,27 @@
   align-items: center;
   gap: 0.5rem;
   padding: 1.5rem 1rem;
-  background: rgba(0, 0, 0, 0.15);
+  background: rgba(0, 0, 0, 0.03);
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.05);
   text-align: center;
   transition: all 0.2s;
 }
 
 .sp-perf-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+  background: rgba(0, 0, 0, 0.05);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.03);
 }
 
 .sp-perf-card.highlight {
-  border-color: rgba(255, 255, 255, 0.15);
-  background: rgba(0, 0, 0, 0.15);
+  border-color: rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.05);
 }
 
 .sp-perf-label {
   font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: #64748b;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -401,12 +401,11 @@
 .sp-perf-value {
   font-size: 1.6rem;
   font-weight: 800;
-  color: #fff;
+  color: #1e293b;
 }
 
 .sp-perf-value.cgpa {
-  color: #fff;
-  font-size: 1.6rem;
+  color: #2563eb;
 }
 
 @media (max-width: 768px) {
