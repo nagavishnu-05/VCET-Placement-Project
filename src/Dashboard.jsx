@@ -3,7 +3,7 @@ import Head from 'next/head';
 import Vcet from "./assets/VCET Logo.jpg";
 // import { disableDevTools } from "./utils/disableDevTools";
 import CSE from "./assets/CSE LOGO.jpg";
-import { FaUser, FaLock, FaUserShield } from "react-icons/fa";
+import { FaUser, FaLock, FaUserShield, FaGraduationCap } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 import Loader from "./components/Loader";
 import AboutUsModal from "./components/AboutUsModal";
@@ -18,6 +18,43 @@ function Dashboard() {
   const [isLoading, setIsLoading] = useState(false);
   const [showAboutModal, setShowAboutModal] = useState(false);
   const navigate = useNavigate();
+
+  // Student login state
+  const [registerNumber, setRegisterNumber] = useState("");
+  const [dob, setDob] = useState(""); // stores YYYY-MM-DD from date input
+  const [year, setYear] = useState("");
+
+  // Format date from YYYY-MM-DD to DD.MM.YYYY for API
+  const formatDobForAPI = (isoDate) => {
+    if (!isoDate) return "";
+    const [y, m, d] = isoDate.split("-");
+    return `${d}.${m}.${y}`;
+  };
+
+  const handleStudentLogin = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      const res = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ registerNumber, dob: formatDobForAPI(dob), year })
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data?.token) {
+        localStorage.setItem('studentToken', data.token);
+        localStorage.setItem('studentProfile', JSON.stringify(data.profile));
+        navigate('/student/dashboard');
+      } else {
+        alert(data?.message || 'Invalid credentials');
+      }
+    } catch (err) {
+      alert('Unable to reach server. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
 
   const handleAdminLogin = async (e) => {
@@ -133,22 +170,43 @@ function Dashboard() {
                 {/* Student Login */}
                 <div className={`login-form student ${isStudentLogin ? 'active' : ''}`}>
                   <h2>Student Portal</h2>
-                  <form>
+                  <form onSubmit={handleStudentLogin}>
                     <div className="form-group">
                       <span className="input-icon"><FaUser /></span>
                       <input
                         type="text"
-                        placeholder="Student ID"
+                        name="registerNumber"
+                        placeholder="Register Number"
                         className="input-field"
+                        value={registerNumber}
+                        onChange={(e) => setRegisterNumber(e.target.value)}
+                        required
                       />
                     </div>
-                    <div className="form-group">
-                      <span className="input-icon"><FaLock /></span>
-                      <input
-                        type="password"
-                        placeholder="Password"
-                        className="input-field"
-                      />
+                    <div className="dob-year-row">
+                      <div className="form-group">
+                        <span className="input-icon"><FaLock /></span>
+                        <input
+                          type="date"
+                          name="dob"
+                          className="input-field date-input"
+                          value={dob}
+                          onChange={(e) => setDob(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="form-group">
+                        <span className="input-icon"><FaGraduationCap /></span>
+                        <input
+                          type="number"
+                          name="year"
+                          placeholder="Batch Year"
+                          className="input-field"
+                          value={year}
+                          onChange={(e) => setYear(e.target.value)}
+                          required
+                        />
+                      </div>
                     </div>
                     <button
                       type="submit"
