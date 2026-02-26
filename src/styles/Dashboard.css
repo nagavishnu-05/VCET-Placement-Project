@@ -65,12 +65,21 @@ body {
     padding: 2rem;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
-    min-height: 460px;
-    height: fit-content;
+    /* No fixed height, allows natural growth from stacked forms */
+    height: auto;
+    min-height: 410px;
     position: relative;
-    overflow: visible;
+    overflow: hidden;
+    /* CRITICAL: Must be hidden to contain the circular reveal */
     backdrop-filter: blur(10px);
-    transition: all 0.3s ease;
+    transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 100%;
+}
+
+.login-forms-stack {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr;
     width: 100%;
 }
 
@@ -327,46 +336,7 @@ body {
     width: 100%;
 }
 
-/* Form animations */
-@keyframes slideIn {
-    from {
-        opacity: 0;
-        transform: translateX(100%) scale(0.8);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateX(0) scale(1);
-    }
-}
-
-@keyframes slideOut {
-    from {
-        opacity: 1;
-        transform: translateX(0) scale(1);
-    }
-
-    to {
-        opacity: 0;
-        transform: translateX(-100%) scale(0.8);
-    }
-}
-
-.login-form.student.active {
-    animation: slideIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
-.login-form.admin.active {
-    animation: slideIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
-.login-form.student:not(.active) {
-    animation: slideOut 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
-.login-form.admin:not(.active) {
-    animation: slideOut 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
+/* Old animations removed */
 
 /* Enhanced Content Sections */
 .department-section,
