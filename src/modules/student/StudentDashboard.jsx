@@ -13,7 +13,7 @@ import {
     FaTrophy,
 } from "react-icons/fa";
 
-const API_BASE = "http://localhost:5000/api/student-portal";
+const API_BASE = "https://vcetplacement.onrender.com/api/student-portal";
 
 const StudentDashboard = () => {
     const [profile, setProfile] = useState(null);

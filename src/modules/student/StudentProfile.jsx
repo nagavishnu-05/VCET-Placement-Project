@@ -3,7 +3,7 @@ import axios from "axios";
 import StudentLayout from "./StudentLayout";
 import { FaUser, FaEnvelope, FaPhone, FaGraduationCap, FaIdCard, FaBirthdayCake, FaBookOpen, FaCodeBranch } from "react-icons/fa";
 
-const API_BASE = "http://localhost:5000/api/student-portal";
+const API_BASE = "https://vcetplacement.onrender.com/api/student-portal";
 
 const StudentProfile = () => {
     const [profile, setProfile] = useState(null);
