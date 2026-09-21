@@ -17,7 +17,7 @@
     "chartjs-plugin-datalabels": "^2.2.0",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
-    "next": "^15.3.2",
+    "next": "^16.3.5",
     "placement": "file:",
     "react": "^19.2.0",
     "react-chartjs-2": "^5.3.1",
