@@ -18,6 +18,8 @@ const ManageStudents = () => {
   const batch = location.state?.batch;
   const year =
     localStorage.getItem("selectedYear") || location.state?.batch?.endYear;
+  const batchStartYear = location.state?.batch?.startYear || Number(year) - 4;
+  const overallExportFileName = `${String(batchStartYear).slice(-2)}-${String(year).slice(-2)}-Overall-Placement-Stats.xlsx`;
 
   const [showRoundDetails, setShowRoundDetails] = useState(false);
   const [companies, setCompanies] = useState([]);
@@ -310,7 +312,11 @@ const ManageStudents = () => {
         }
       );
 
-      const results = await Promise.all(allStudentPromises);
+      const results = (await Promise.all(allStudentPromises)).sort((a, b) => {
+        const registerA = String(a.student.studentRegisterNumber ?? "");
+        const registerB = String(b.student.studentRegisterNumber ?? "");
+        return registerA.localeCompare(registerB, undefined, { numeric: true });
+      });
 
       // 2. Construct the Rows
       const exportRows = results.map(({ student, studentCompanyData }) => {
@@ -346,7 +352,7 @@ const ManageStudents = () => {
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Overall Placement Status");
 
-      XLSX.writeFile(wb, "Overall_Student_Status_Report.xlsx");
+      XLSX.writeFile(wb, overallExportFileName);
 
       toast.success("Exported successfully!");
     } catch (error) {

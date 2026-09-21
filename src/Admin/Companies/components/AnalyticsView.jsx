@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useRef, useState } from "react";
 import { Bar } from 'react-chartjs-2';
-import { FaWhatsapp } from "react-icons/fa";
+import { FaFilePdf, FaWhatsapp } from "react-icons/fa";
+import { exportAnalyticsPdf } from './exportAnalyticsPdf';
 
 const AnalyticsView = ({
   maxRounds,
@@ -10,16 +11,21 @@ const AnalyticsView = ({
   studentInformationsDetail,
   totalPlacedStudents,
   generatePlacedStudentsMessage,
-  generateOverallStatsMessage
+  generateOverallStatsMessage,
+  year
 }) => {
+  const analyticsRef = useRef(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const overallFileName = `${String(Number(year) - 4).slice(-2)}-${String(year).slice(-2)}-Overall-Placement-Stats.pdf`;
+
   const placementInterestedCount = studentInformationsDetail.filter(
     (s) => s.studentPlacementInterest && s.studentPlacementInterest.trim().toLowerCase() === "yes"
   ).length;
 
   return (
-    <div className="analytics-container">
+    <div className="analytics-container" ref={analyticsRef}>
       {/* Round-wise Analytics with Charts */}
-      <div className="analytics-card">
+      <div className="analytics-card" data-pdf-section>
         <h3>Round-wise Performance</h3>
         <div className="analytics-stats">
           <div className="chart-container">
@@ -155,10 +161,27 @@ const AnalyticsView = ({
         </div>
       </div>
 
-      <div className="analytics-card">
+      <div className="analytics-card" data-pdf-section>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
           <h3>Overall Performance</h3>
           <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <button
+              className="analytics-pdf-btn"
+              onClick={async () => {
+                setIsExporting(true);
+                try {
+                  await exportAnalyticsPdf(analyticsRef.current, overallFileName, {
+                    orientation: "portrait",
+                    singlePage: true,
+                  });
+                } finally {
+                  setIsExporting(false);
+                }
+              }}
+              disabled={isExporting}
+            >
+              <FaFilePdf /> {isExporting ? 'Preparing PDF...' : 'Download PDF'}
+            </button>
             <button
               className="whatsapp-btn whatsapp-btn-selected"
               onClick={async () => {

@@ -55,6 +55,7 @@ const RoundInsightsModal = ({
               totalPlacedStudents={totalPlacedStudents}
               generatePlacedStudentsMessage={generatePlacedStudentsMessage}
               generateOverallStatsMessage={generateOverallStatsMessage}
+              year={year}
             />
           ) : showCompanyAnalytics && selectedAnalyticsCompany ? (
             <CompanyAnalyticsView

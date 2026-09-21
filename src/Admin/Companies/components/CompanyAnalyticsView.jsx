@@ -1,14 +1,19 @@
-import React from "react";
+import React, { useRef, useState } from "react";
 import { Bar } from 'react-chartjs-2';
-import { FaArrowLeft } from "react-icons/fa";
+import { FaArrowLeft, FaFilePdf } from "react-icons/fa";
+import { exportAnalyticsPdf } from './exportAnalyticsPdf';
 
 const CompanyAnalyticsView = ({
   selectedAnalyticsCompany,
   setShowCompanyAnalytics,
   companyRoundStats
 }) => {
+  const analyticsRef = useRef(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const companyFileName = `${selectedAnalyticsCompany.name.replace(/[^a-z0-9]+/gi, '-')}-Analytics.pdf`;
+
   return (
-    <div className="analytics-container">
+    <div className="analytics-container" ref={analyticsRef}>
       <div className="analytics-header">
         <button
           className="back-arrow-btn"
@@ -18,8 +23,25 @@ const CompanyAnalyticsView = ({
           <FaArrowLeft />
         </button>
         <h2>{selectedAnalyticsCompany.name.toUpperCase()} Analytics</h2>
+        <button
+          className="analytics-pdf-btn"
+          onClick={async () => {
+            setIsExporting(true);
+            try {
+              await exportAnalyticsPdf(analyticsRef.current, companyFileName, {
+                orientation: "portrait",
+                singlePage: true,
+              });
+            } finally {
+              setIsExporting(false);
+            }
+          }}
+          disabled={isExporting}
+        >
+          <FaFilePdf /> {isExporting ? 'Preparing PDF...' : 'Download PDF'}
+        </button>
       </div>
-      <div className="analytics-card">
+      <div className="analytics-card" data-pdf-section>
         <h3>{selectedAnalyticsCompany.name.toUpperCase()} - Round-wise Performance</h3>
         <div className="analytics-stats">
           <div className="chart-container">
@@ -168,7 +190,7 @@ const CompanyAnalyticsView = ({
           </div>
         </div>
       </div>
-      <div className="analytics-card">
+      <div className="analytics-card" data-pdf-section>
         <h3>Company Summary</h3>
         <div className="analytics-stats">
           <div className="stat-item">
